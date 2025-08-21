@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>カラー不良・透過率不良一覧</h2>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <form id="searchForm" class="row g-3">
+                <div class="col-md-4">
+                    <label for="startDate" class="form-label">R1注入日（開始）</label>
+                    <input type="date" class="form-control" id="startDate" name="start_date" value="{{ start_date if start_date }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="endDate" class="form-label">R1注入日（終了）</label>
+                    <input type="date" class="form-control" id="endDate" name="end_date" value="{{ end_date if end_date }}">
+                </div>
+                <div class="col-md-4 d-flex align-items-end gap-2">
+                    <button type="button" class="btn btn-secondary" onclick="setLastMonth()">前月</button>
+                    <button type="button" class="btn btn-secondary" onclick="setThisMonth()">今月</button>
+                    <button type="submit" class="btn btn-primary">検索</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>R1注入日</th>
+                    <th>検査日</th>
+                    <th>製品名</th>
+                    <th>膜加工日</th>
+                    <th>膜カラー</th>
+                    <th>不良項目</th>
+                    <th>検査数</th>
+                    <th>不良数</th>
+                    <th>不良率(%)</th>
+                    <th>備考</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="defectList">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date();
+    const firstDayThisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const lastDayThisMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    
+    document.getElementById('startDate').value = formatDateForInput(firstDayThisMonth);
+    document.getElementById('endDate').value = formatDateForInput(lastDayThisMonth);
+    loadDefectData();
+    
+    // フォームのsubmitイベントリスナーを追加
+    document.getElementById('searchForm').addEventListener('submit', function(e) {
+        e.preventDefault(); // デフォルトのフォーム送信を防止
+        loadDefectData(); // AJAXでデータを再取得
+    });
+});
+
+function setLastMonth() {
+    const today = new Date();
+    const firstDayLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const lastDayLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+    
+    document.getElementById('startDate').value = formatDateForInput(firstDayLastMonth);
+    document.getElementById('endDate').value = formatDateForInput(lastDayLastMonth);
+    loadDefectData(); // 直接データを読み込む
+}
+
+function setThisMonth() {
+    const today = new Date();
+    const firstDayThisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const lastDayThisMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    
+    document.getElementById('startDate').value = formatDateForInput(firstDayThisMonth);
+    document.getElementById('endDate').value = formatDateForInput(lastDayThisMonth);
+    loadDefectData(); // 直接データを読み込む
+}
+
+function formatDateForInput(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+async function loadDefectData() {
+    try {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const params = new URLSearchParams();
+        if (startDate) params.append('start_date', startDate);
+        if (endDate) params.append('end_date', endDate);
+
+        const response = await fetch('/api/color_trans_defects?' + params.toString());
+        const data = await response.json();
+        displayDefectData(data);
+    } catch (error) {
+        console.error('データの取得に失敗しました:', error);
+        alert('データの取得に失敗しました。');
+    }
+}
+
+function displayDefectData(data) {
+    const tbody = document.getElementById('defectList');
+    tbody.innerHTML = '';
+
+    data.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${formatDate(item.r1_in_date)}</td>
+            <td>${formatDate(item.check_date)}</td>
+            <td>${item.product_name}</td>
+            <td>${formatDate(item.film_date)}</td>
+            <td>${item.film_color}</td>
+            <td>${item.defect_type}</td>
+            <td>${item.ins_qty || ''}</td>
+            <td>${item.ng_qty || ''}</td>
+            <td>${item.defect_rate ? Number(item.defect_rate).toFixed(1) : ''}</td>
+            <td>${item.biko || ''}</td>
+            <td>
+                <button class="btn ${item.has_fng_data ? 'btn-warning' : 'btn-primary'} btn-sm" 
+                        onclick="navigateToInput('${item.lot_no}', '${item.ng_id}')">
+                    ${item.has_fng_data ? '修正' : '新規'}
+                </button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function formatDate(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ja-JP');
+}
+
+function navigateToInput(lotNo, ngId) {
+    window.location.href = `/color_trans_defects/input?lot_no=${lotNo}&ng_id=${ngId}`;
+}
+</script>
+{% endblock %} 

@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>区分マスタ{{ '新規作成' if is_create else '編集' }}</h2>
+    
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" class="needs-validation" novalidate>
+                        {{ form.csrf_token }}
+                        
+                        <!-- 区分種別 -->
+                        <div class="form-group">
+                            {{ form.KBN_TYP.label(class="form-label") }}
+                            {{ form.KBN_TYP(class="form-control") }}
+                            {% if form.KBN_TYP.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.KBN_TYP.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {% if not is_create %}
+                                <small class="form-text text-muted">※編集時は変更できません</small>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- 区分ID -->
+                        <div class="form-group">
+                            {{ form.KBN_ID.label(class="form-label") }}
+                            {{ form.KBN_ID(class="form-control") }}
+                            {% if form.KBN_ID.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.KBN_ID.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {% if not is_create %}
+                                <small class="form-text text-muted">※編集時は変更できません</small>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- 区分名 -->
+                        <div class="form-group">
+                            {{ form.KBN_NM.label(class="form-label") }}
+                            {{ form.KBN_NM(class="form-control") }}
+                            {% if form.KBN_NM.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.KBN_NM.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- ボタン -->
+                        <div class="form-group d-flex justify-content-between">
+                            <a href="{{ url_for('master.kbn_mst_list') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> 戻る
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> {{ '作成' if is_create else '更新' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            {% if not is_create and kbn_mst %}
+            <!-- 編集時の参考情報 -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">現在の情報</h6>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">区分種別:</dt>
+                        <dd class="col-sm-8">{{ kbn_mst.KBN_TYP }}</dd>
+                        <dt class="col-sm-4">区分ID:</dt>
+                        <dd class="col-sm-8">{{ kbn_mst.KBN_ID }}</dd>
+                        <dt class="col-sm-4">区分名:</dt>
+                        <dd class="col-sm-8">{{ kbn_mst.KBN_NM or '（空）' }}</dd>
+                    </dl>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- 区分種別の説明 -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">区分種別について</h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <small>
+                            <strong>区分種別の例:</strong><br>
+                            • MMNO: モノマー<br>
+                            • MITM: アイテム<br>
+                            • MCUT: カットメニュー<br>
+                            • MCRB: 膜カーブ<br>
+                            • MCLR: 色<br>
+                            • SPKD: スピンコート種類<br>
+                            • SPCL: スピンコート色<br>
+                            • HCKD: ハードコート種類<br>
+                            • HCCL: ハードコート色<br>
+                            等
+                        </small>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <small>
+                            <strong>注意事項:</strong><br>
+                            • 区分種別は最大4文字まで<br>
+                            • 区分IDは数値（最大3桁）<br>
+                            • 区分名は最大30文字まで<br>
+                            • 区分種別とIDの組み合わせは一意である必要があります
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-label {
+    font-weight: bold;
+}
+
+.invalid-feedback {
+    display: block;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.btn {
+    min-width: 80px;
+}
+</style>
+{% endblock %} 

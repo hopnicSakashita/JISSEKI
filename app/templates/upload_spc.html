@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>スピンコートデータCSVインポート</h2>
+<form method="post" enctype="multipart/form-data">
+    <div class="form-group">
+        <label for="csv_file">CSVファイルを選択:</label>
+        <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv">
+    </div>
+    <button type="submit" class="btn btn-primary">アップロード</button>
+</form>
+{% endblock %} 

@@ -1,0 +1,813 @@
+{% extends 'base.html' %}
+
+{% block style %}
+<style>
+    .chart-container {
+        position: relative;
+        height: 600px;
+        width: 100%;
+        margin-bottom: 30px;
+    }
+    .filters {
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    .total-row {
+        background-color: #e9ecef;
+        font-weight: bold;
+    }
+    .defect-summary {
+        margin-top: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    .defect-summary h3 {
+        margin-bottom: 15px;
+    }
+    .defect-summary table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .defect-summary th, .defect-summary td {
+        padding: 8px;
+        text-align: right;
+        border: 1px solid #ddd;
+    }
+    .defect-summary th {
+        background-color: #f2f2f2;
+        text-align: center;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    .period-summary {
+        margin-top: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    .period-summary h3 {
+        margin-bottom: 15px;
+    }
+    .period-summary table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .period-summary th, .period-summary td {
+        padding: 8px;
+        text-align: right;
+        border: 1px solid #ddd;
+    }
+    .period-summary th {
+        background-color: #f2f2f2;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>膜加工不良詳細分析</h1>
+<div class="filters">
+    <h3>フィルター</h3>
+    <div class="row">
+        <div class="col-md-6">
+            <label for="date-from">検査日開始:</label>
+            <input type="date" id="date-from" class="form-control" value="{{ start_date.strftime('%Y-%m-%d') if start_date else '' }}">
+            <button id="today-button" class="btn btn-info m-1">今日</button>
+            <button id="yesterday-button" class="btn btn-info m-1">昨日</button>
+            <button id="this-month-button" class="btn btn-info m-1">今月</button>
+            <button id="last-month-button" class="btn btn-info m-1">前月</button>
+        </div>
+        <div class="col-md-6">
+            <label for="date-to">検査日終了:</label>
+            <input type="date" id="date-to" class="form-control" value="{{ end_date.strftime('%Y-%m-%d') if end_date else '' }}">
+        </div>
+    </div>
+    <div class="row mt-3">
+        <div class="col-md-4">
+            <label for="color">色:</label>
+            <select id="color" class="form-control">
+                <option value="">すべて</option>
+                {% for c in colors %}
+                <option value="{{ c.KBN_ID }}">{{ c.KBN_NM }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label for="film_curve">膜カーブ:</label>
+            <select id="film_curve" class="form-control">
+                <option value="">すべて</option>
+                {% for fc in film_curves %}
+                <option value="{{ fc.KBN_ID }}">{{ fc.KBN_NM }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label for="pva_lot_no">PVAロットNo:</label>
+            <input type="number" id="pva_lot_no" class="form-control">
+        </div>
+    </div>
+    
+    <div class="row mt-3">
+        <div class="col-md-12">
+            <button id="apply-filters" class="btn btn-primary">適用</button>
+            <button id="reset-filters" class="btn btn-secondary">リセット</button>
+        </div>
+    </div>
+</div>
+
+<div class="chart-container">
+    <canvas id="primary-defect-chart" style="height:600px;"></canvas>
+</div>
+
+<div class="chart-container">
+    <canvas id="secondary-defect-chart" style="height:600px;"></canvas>
+</div>
+
+<div class="chart-container">
+    <canvas id="period-total-chart" style="height:600px;"></canvas>
+</div>
+
+<div class="defect-summary">
+    <h3>一次検査不良詳細データ（加工枚数基準）</h3>
+    <div class="table-responsive">
+        <table class="table table-bordered" id="primary-defect-summary-table">
+            <thead class="thead-dark">
+                <tr>
+                    <th>不良項目</th>
+                    <!-- 日付はJavaScriptで動的に追加 -->
+                </tr>
+            </thead>
+            <tbody>
+                <!-- データはJavaScriptで動的に生成 -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="defect-summary">
+    <h3>二次検査不良詳細データ（一次良品数基準）</h3>
+    <div class="table-responsive">
+        <table class="table table-bordered" id="secondary-defect-summary-table">
+            <thead class="thead-dark">
+                <tr>
+                    <th>不良項目</th>
+                    <!-- 日付はJavaScriptで動的に追加 -->
+                </tr>
+            </thead>
+            <tbody>
+                <!-- データはJavaScriptで動的に生成 -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="period-summary">
+    <h3>期間合計</h3>
+    <div class="table-responsive">
+        <table class="table table-bordered" id="period-summary-table">
+            <thead class="thead-dark">
+                <tr>
+                    <th>検査種別</th>
+                    <th>不良項目</th>
+                    <th>不良数</th>
+                    <th>不良率</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- データはJavaScriptで動的に生成 -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="csv-import-time" class="mt-2 text-muted"></div>
+{% if error %}
+  <div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let primaryDefectChart = null;
+        let secondaryDefectChart = null;
+        let periodTotalChart = null;
+        
+        setupDateButtons();
+        
+        document.getElementById('apply-filters').addEventListener('click', function() {
+            fetchDefectData();
+        });
+        
+        document.getElementById('reset-filters').addEventListener('click', function() {
+            document.getElementById('date-from').value = '';
+            document.getElementById('date-to').value = '';
+            document.getElementById('color').value = '';
+            document.getElementById('film_curve').value = '';
+            document.getElementById('pva_lot_no').value = '';
+            fetchDefectData();
+        });
+        
+        function setupDateButtons() {
+            document.getElementById('today-button').addEventListener('click', function() {
+                const today = formatDateForInput(new Date());
+                document.getElementById('date-from').value = today;
+                document.getElementById('date-to').value = today;
+            });
+            
+            document.getElementById('yesterday-button').addEventListener('click', function() {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = formatDateForInput(yesterday);
+                document.getElementById('date-from').value = yesterdayStr;
+                document.getElementById('date-to').value = yesterdayStr;
+            });
+            
+            // 今月ボタン
+            document.getElementById('this-month-button').addEventListener('click', function(e) {
+                e.preventDefault();
+                const now = new Date();
+                const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+                const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                document.getElementById('date-from').value = formatDateForInput(firstDay);
+                document.getElementById('date-to').value = formatDateForInput(lastDay);
+            });
+            
+            // 先月ボタン
+            document.getElementById('last-month-button').addEventListener('click', function(e) {
+                e.preventDefault();
+                const now = new Date();
+                const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1);
+                const firstDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 1);
+                const lastDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0);
+                document.getElementById('date-from').value = formatDateForInput(firstDay);
+                document.getElementById('date-to').value = formatDateForInput(lastDay);
+            });
+        }
+        
+        function updatePrimaryDefectSummary(data) {
+            const tableBody = document.getElementById('primary-defect-summary-table').getElementsByTagName('tbody')[0];
+            tableBody.innerHTML = '';
+            const tableHeader = document.getElementById('primary-defect-summary-table').getElementsByTagName('thead')[0].getElementsByTagName('tr')[0];
+            while (tableHeader.childElementCount > 1) {
+                tableHeader.removeChild(tableHeader.lastChild);
+            }
+            
+            data.dates.forEach(date => {
+                const th = document.createElement('th');
+                const dateObj = new Date(date);
+                const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+                const day = dateObj.getDate().toString().padStart(2, '0');
+                th.textContent = `${month}/${day}`;
+                tableHeader.appendChild(th);
+            });
+            
+            Object.entries(data.primary_defect_labels).forEach(([defect_type, label]) => {
+                let hasData = false;
+                data.dates.forEach(date => {
+                    if (data.primary_defect_rates[date] && data.primary_defect_rates[date][defect_type] !== undefined && data.primary_defect_rates[date][defect_type] > 0) {
+                        hasData = true;
+                    }
+                });
+                
+                if (!hasData) return;
+                
+                const row = document.createElement('tr');
+                const typeCell = document.createElement('td');
+                typeCell.textContent = label;
+                row.appendChild(typeCell);
+                
+                data.dates.forEach(date => {
+                    const cell = document.createElement('td');
+                    if (data.primary_defect_rates[date] && data.primary_defect_rates[date][defect_type] !== undefined) {
+                        const rate = data.primary_defect_rates[date][defect_type];
+                        cell.textContent = rate < 0.01 ? '0.00' : rate.toFixed(2);
+                        cell.textContent += '%';
+                    } else {
+                        cell.textContent = '-';
+                    }
+                    row.appendChild(cell);
+                });
+                
+                tableBody.appendChild(row);
+            });
+            
+            const totalRow = document.createElement('tr');
+            totalRow.classList.add('total-row');
+            const totalLabelCell = document.createElement('td');
+            totalLabelCell.textContent = '一次検査合計';
+            totalRow.appendChild(totalLabelCell);
+            
+            data.dates.forEach(date => {
+                const cell = document.createElement('td');
+                if (data.primary_total_rates[date] !== undefined) {
+                    const rate = data.primary_total_rates[date];
+                    cell.textContent = rate < 0.01 ? '0.00' : rate.toFixed(2);
+                    cell.textContent += '%';
+                } else {
+                    cell.textContent = '-';
+                }
+                totalRow.appendChild(cell);
+            });
+            
+            tableBody.appendChild(totalRow);
+        }
+        
+        function updateSecondaryDefectSummary(data) {
+            const tableBody = document.getElementById('secondary-defect-summary-table').getElementsByTagName('tbody')[0];
+            tableBody.innerHTML = '';
+            const tableHeader = document.getElementById('secondary-defect-summary-table').getElementsByTagName('thead')[0].getElementsByTagName('tr')[0];
+            while (tableHeader.childElementCount > 1) {
+                tableHeader.removeChild(tableHeader.lastChild);
+            }
+            
+            data.dates.forEach(date => {
+                const th = document.createElement('th');
+                const dateObj = new Date(date);
+                const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+                const day = dateObj.getDate().toString().padStart(2, '0');
+                th.textContent = `${month}/${day}`;
+                tableHeader.appendChild(th);
+            });
+            
+            Object.entries(data.secondary_defect_labels).forEach(([defect_type, label]) => {
+                let hasData = false;
+                data.dates.forEach(date => {
+                    if (data.secondary_defect_rates[date] && data.secondary_defect_rates[date][defect_type] !== undefined && data.secondary_defect_rates[date][defect_type] > 0) {
+                        hasData = true;
+                    }
+                });
+                
+                if (!hasData) return;
+                
+                const row = document.createElement('tr');
+                const typeCell = document.createElement('td');
+                typeCell.textContent = label;
+                row.appendChild(typeCell);
+                
+                data.dates.forEach(date => {
+                    const cell = document.createElement('td');
+                    if (data.secondary_defect_rates[date] && data.secondary_defect_rates[date][defect_type] !== undefined) {
+                        const rate = data.secondary_defect_rates[date][defect_type];
+                        cell.textContent = rate < 0.01 ? '0.00' : rate.toFixed(2);
+                        cell.textContent += '%';
+                    } else {
+                        cell.textContent = '-';
+                    }
+                    row.appendChild(cell);
+                });
+                
+                tableBody.appendChild(row);
+            });
+            
+            const totalRow = document.createElement('tr');
+            totalRow.classList.add('total-row');
+            const totalLabelCell = document.createElement('td');
+            totalLabelCell.textContent = '二次検査合計';
+            totalRow.appendChild(totalLabelCell);
+            
+            data.dates.forEach(date => {
+                const cell = document.createElement('td');
+                if (data.secondary_total_rates[date] !== undefined) {
+                    const rate = data.secondary_total_rates[date];
+                    cell.textContent = rate < 0.01 ? '0.00' : rate.toFixed(2);
+                    cell.textContent += '%';
+                } else {
+                    cell.textContent = '-';
+                }
+                totalRow.appendChild(cell);
+            });
+            
+            tableBody.appendChild(totalRow);
+        }
+        
+        function updatePeriodSummary(data) {
+            const tableBody = document.getElementById('period-summary-table').getElementsByTagName('tbody')[0];
+            tableBody.innerHTML = '';
+
+            let totalSheets = 0;
+            let totalPrimaryGood = 0;
+
+            // 期間合計の計算
+            data.dates.forEach(date => {
+                if (data.total_data[date]) {
+                    totalSheets += data.total_data[date].total_sheets;
+                    totalPrimaryGood += data.total_data[date].total_primary_good;
+                }
+            });
+
+            // 一次検査の各不良項目の合計を計算
+            Object.entries(data.primary_defect_labels).forEach(([defect_type, label]) => {
+                let defectTotal = 0;
+                data.dates.forEach(date => {
+                    if (data.primary_defect_rates[date] && data.primary_defect_rates[date][defect_type] !== undefined) {
+                        const rate = data.primary_defect_rates[date][defect_type];
+                        const sheets = data.total_data[date].total_sheets;
+                        defectTotal += (rate * sheets / 100);
+                    }
+                });
+
+                if (defectTotal > 0) {
+                    const row = document.createElement('tr');
+                    
+                    const examTypeCell = document.createElement('td');
+                    examTypeCell.textContent = '一次検査';
+                    row.appendChild(examTypeCell);
+                    
+                    const typeCell = document.createElement('td');
+                    typeCell.textContent = label;
+                    row.appendChild(typeCell);
+
+                    const countCell = document.createElement('td');
+                    countCell.textContent = Math.round(defectTotal);
+                    row.appendChild(countCell);
+
+                    const rateCell = document.createElement('td');
+                    const rate = totalSheets > 0 ? (defectTotal / totalSheets * 100) : 0;
+                    rateCell.textContent = (rate < 0.01 ? '0.00' : rate.toFixed(2)) + '%';
+                    row.appendChild(rateCell);
+
+                    tableBody.appendChild(row);
+                }
+            });
+
+            // 二次検査の各不良項目の合計を計算
+            Object.entries(data.secondary_defect_labels).forEach(([defect_type, label]) => {
+                let defectTotal = 0;
+                data.dates.forEach(date => {
+                    if (data.secondary_defect_rates[date] && data.secondary_defect_rates[date][defect_type] !== undefined) {
+                        const rate = data.secondary_defect_rates[date][defect_type];
+                        const primaryGood = data.total_data[date].total_primary_good;
+                        defectTotal += (rate * primaryGood / 100);
+                    }
+                });
+
+                if (defectTotal > 0) {
+                    const row = document.createElement('tr');
+                    
+                    const examTypeCell = document.createElement('td');
+                    examTypeCell.textContent = '二次検査';
+                    row.appendChild(examTypeCell);
+                    
+                    const typeCell = document.createElement('td');
+                    typeCell.textContent = label;
+                    row.appendChild(typeCell);
+
+                    const countCell = document.createElement('td');
+                    countCell.textContent = Math.round(defectTotal);
+                    row.appendChild(countCell);
+
+                    const rateCell = document.createElement('td');
+                    const rate = totalPrimaryGood > 0 ? (defectTotal / totalPrimaryGood * 100) : 0;
+                    rateCell.textContent = (rate < 0.01 ? '0.00' : rate.toFixed(2)) + '%';
+                    row.appendChild(rateCell);
+
+                    tableBody.appendChild(row);
+                }
+            });
+        }
+        
+        function updatePrimaryChart(data) {
+            const ctx = document.getElementById('primary-defect-chart').getContext('2d');
+            if (primaryDefectChart) {
+                primaryDefectChart.destroy();
+            }
+
+            // 不良タイプと色のマッピングを作成
+            const colorMap = {};
+            Object.keys(data.primary_defect_labels).forEach((defect_type, index) => {
+                colorMap[defect_type] = `hsl(${(index*60)%360},70%,70%)`;
+            });
+
+            const validDefectTypes = [];
+            Object.keys(data.primary_defect_labels).forEach(defect_type => {
+                let hasData = false;
+                data.dates.forEach(date => {
+                    if (data.primary_defect_rates[date] && data.primary_defect_rates[date][defect_type] !== undefined && data.primary_defect_rates[date][defect_type] > 0) {
+                        hasData = true;
+                    }
+                });
+                if (hasData) {
+                    validDefectTypes.push(defect_type);
+                }
+            });
+
+            const datasets = [];
+            validDefectTypes.forEach(defect_type => {
+                datasets.push({
+                    label: data.primary_defect_labels[defect_type],
+                    data: data.dates.map(date => {
+                        if (data.primary_defect_rates[date] && data.primary_defect_rates[date][defect_type] !== undefined) {
+                            return data.primary_defect_rates[date][defect_type];
+                        }
+                        return 0;
+                    }),
+                    backgroundColor: colorMap[defect_type],
+                });
+            });
+
+            primaryDefectChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.dates.map(date => {
+                        const d = new Date(date);
+                        const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+                        return `${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')}(${weekdays[d.getDay()]})`
+                    }),
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '一次検査不良項目の推移（加工枚数基準）',
+                            font: { size: 18 }
+                        },
+                        legend: { position: 'right' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) label += ': ';
+                                    if (context.parsed.y !== null) {
+                                        const rate = context.parsed.y;
+                                        label += (rate < 0.01 ? '0.00' : rate.toFixed(2)) + '%';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            title: { display: true, text: '日付' },
+                            ticks: { font: { size: 16 } }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            stacked: true,
+                            title: { display: true, text: '不良率 (%)' },
+                            ticks: { font: { size: 16 } }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function updateSecondaryChart(data) {
+            const ctx = document.getElementById('secondary-defect-chart').getContext('2d');
+            if (secondaryDefectChart) {
+                secondaryDefectChart.destroy();
+            }
+
+            // 不良タイプと色のマッピングを作成
+            const colorMap = {};
+            Object.keys(data.secondary_defect_labels).forEach((defect_type, index) => {
+                colorMap[defect_type] = `hsl(${(index*60+30)%360},70%,70%)`;
+            });
+
+            const validDefectTypes = [];
+            Object.keys(data.secondary_defect_labels).forEach(defect_type => {
+                let hasData = false;
+                data.dates.forEach(date => {
+                    if (data.secondary_defect_rates[date] && data.secondary_defect_rates[date][defect_type] !== undefined && data.secondary_defect_rates[date][defect_type] > 0) {
+                        hasData = true;
+                    }
+                });
+                if (hasData) {
+                    validDefectTypes.push(defect_type);
+                }
+            });
+
+            const datasets = [];
+            validDefectTypes.forEach(defect_type => {
+                datasets.push({
+                    label: data.secondary_defect_labels[defect_type],
+                    data: data.dates.map(date => {
+                        if (data.secondary_defect_rates[date] && data.secondary_defect_rates[date][defect_type] !== undefined) {
+                            return data.secondary_defect_rates[date][defect_type];
+                        }
+                        return 0;
+                    }),
+                    backgroundColor: colorMap[defect_type],
+                });
+            });
+
+            secondaryDefectChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.dates.map(date => {
+                        const d = new Date(date);
+                        const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+                        return `${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')}(${weekdays[d.getDay()]})`
+                    }),
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '二次検査不良項目の推移（一次良品数基準）',
+                            font: { size: 18 }
+                        },
+                        legend: { position: 'right' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) label += ': ';
+                                    if (context.parsed.y !== null) {
+                                        const rate = context.parsed.y;
+                                        label += (rate < 0.01 ? '0.00' : rate.toFixed(2)) + '%';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            title: { display: true, text: '日付' },
+                            ticks: { font: { size: 16 } }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            stacked: true,
+                            title: { display: true, text: '不良率 (%)' },
+                            ticks: { font: { size: 16 } }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function updatePeriodTotalChart(data) {
+            const ctx = document.getElementById('period-total-chart').getContext('2d');
+            if (periodTotalChart) {
+                periodTotalChart.destroy();
+            }
+
+            let totalSheets = 0;
+            let totalPrimaryGood = 0;
+            data.dates.forEach(date => {
+                if (data.total_data[date]) {
+                    totalSheets += data.total_data[date].total_sheets;
+                    totalPrimaryGood += data.total_data[date].total_primary_good;
+                }
+            });
+
+            // 不良データの計算と格納
+            const defectItems = [];
+            
+            // 一次検査不良項目
+            Object.entries(data.primary_defect_labels).forEach(([defect_type, label]) => {
+                let defectTotal = 0;
+                data.dates.forEach(date => {
+                    if (data.primary_defect_rates[date] && data.primary_defect_rates[date][defect_type] !== undefined) {
+                        const rate = data.primary_defect_rates[date][defect_type];
+                        const sheets = data.total_data[date].total_sheets;
+                        defectTotal += (rate * sheets / 100);
+                    }
+                });
+
+                if (defectTotal > 0) {
+                    const rate = totalSheets > 0 ? (defectTotal / totalSheets * 100) : 0;
+                    defectItems.push({
+                        defect_type: defect_type,
+                        label: `一次: ${label}`,
+                        rate: rate,
+                        color: `hsl(${defectItems.length*30%360},70%,70%)`
+                    });
+                }
+            });
+
+            // 二次検査不良項目
+            Object.entries(data.secondary_defect_labels).forEach(([defect_type, label]) => {
+                let defectTotal = 0;
+                data.dates.forEach(date => {
+                    if (data.secondary_defect_rates[date] && data.secondary_defect_rates[date][defect_type] !== undefined) {
+                        const rate = data.secondary_defect_rates[date][defect_type];
+                        const primaryGood = data.total_data[date].total_primary_good;
+                        defectTotal += (rate * primaryGood / 100);
+                    }
+                });
+
+                if (defectTotal > 0) {
+                    const rate = totalPrimaryGood > 0 ? (defectTotal / totalPrimaryGood * 100) : 0;
+                    defectItems.push({
+                        defect_type: defect_type,
+                        label: `二次: ${label}`,
+                        rate: rate,
+                        color: `hsl(${defectItems.length*30%360},70%,70%)`
+                    });
+                }
+            });
+
+            // 不良率で降順ソート
+            defectItems.sort((a, b) => b.rate - a.rate);
+
+            periodTotalChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: defectItems.map(item => item.label),
+                    datasets: [{
+                        label: '期間合計不良率',
+                        data: defectItems.map(item => item.rate),
+                        backgroundColor: defectItems.map(item => item.color),
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '期間合計不良率',
+                            font: { size: 18 }
+                        },
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const rate = context.parsed.y;
+                                    return `不良率: ${rate < 0.01 ? '0.00' : rate.toFixed(2)}%`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { 
+                                display: true, 
+                                text: '不良項目',
+                                font: { size: 14 }
+                            },
+                            ticks: { 
+                                font: { size: 12 },
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: { 
+                                display: true, 
+                                text: '不良率 (%)',
+                                font: { size: 14 }
+                            },
+                            ticks: { 
+                                font: { size: 12 }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function fetchDefectData() {
+            const dateFrom = document.getElementById('date-from').value;
+            const dateTo = document.getElementById('date-to').value;
+            const color = document.getElementById('color').value;
+            const filmCurve = document.getElementById('film_curve').value;
+            const pvaLotNo = document.getElementById('pva_lot_no').value;
+            
+            let url = '/api/fmp_defect_detail_data?';
+            if (dateFrom) url += `start_date=${encodeURIComponent(dateFrom)}&`;
+            if (dateTo) url += `end_date=${encodeURIComponent(dateTo)}&`;
+            if (color) url += `color=${encodeURIComponent(color)}&`;
+            if (filmCurve) url += `film_curve=${encodeURIComponent(filmCurve)}&`;
+            if (pvaLotNo) url += `pva_lot_no=${encodeURIComponent(pvaLotNo)}`;
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    updatePrimaryChart(data);
+                    updateSecondaryChart(data);
+                    updatePrimaryDefectSummary(data);
+                    updateSecondaryDefectSummary(data);
+                    updatePeriodSummary(data);
+                    updatePeriodTotalChart(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                });
+        }
+        
+        // 初期表示
+        fetchDefectData();
+    });
+</script>
+{% endblock %}

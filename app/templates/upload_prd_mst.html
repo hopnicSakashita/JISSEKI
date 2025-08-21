@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">製品マスタCSV取込</h2>
+
+    <div class="row">
+        <!-- アップロードフォーム -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="csv_file" class="form-label">CSVファイルを選択</label>
+                            <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv">
+                        </div>
+                        <button type="submit" class="btn btn-primary">アップロード</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- マニュアル -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">製品マスタCSV取込方法</h5>
+                </div>
+                <div class="card-body">
+                    <h6 class="fw-bold">CSVファイル形式</h6>
+                    <p class="mb-3">ヘッダーなしのCSVファイルを以下の列順で準備してください：</p>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>列番号</th>
+                                    <th>項目名</th>
+                                    <th>必須</th>
+                                    <th>説明</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>1</td>
+                                    <td><code>PRD_ID</code></td>
+                                    <td><span class="badge bg-danger">必須</span></td>
+                                    <td>製品ID（4文字以内）</td>
+                                </tr>
+                                <tr>
+                                    <td>2</td>
+                                    <td><code>PRD_KBN</code></td>
+                                    <td><span class="badge bg-secondary">任意</span></td>
+                                    <td>商品分類（数値）</td>
+                                </tr>
+                                <tr>
+                                    <td>3</td>
+                                    <td><code>PRD_TYP</code></td>
+                                    <td><span class="badge bg-secondary">任意</span></td>
+                                    <td>識別ID（1文字）</td>
+                                </tr>
+                                <tr>
+                                    <td>4</td>
+                                    <td><code>PRD_NM</code></td>
+                                    <td><span class="badge bg-secondary">任意</span></td>
+                                    <td>製品名（60文字以内）</td>
+                                </tr>
+                                <tr>
+                                    <td>5</td>
+                                    <td><code>PRD_COLOR</code></td>
+                                    <td><span class="badge bg-secondary">任意</span></td>
+                                    <td>膜カラー（20文字以内）</td>
+                                </tr>
+                                <tr>
+                                    <td>6</td>
+                                    <td><code>PRD_PLY_DAYS</code></td>
+                                    <td><span class="badge bg-secondary">任意</span></td>
+                                    <td>重合日数（数値）</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <small>
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>列順注意：</strong>
+                            CSVファイルにはヘッダー行を含めないでください。
+                            データ行のみを上記の列順で配置してください。
+                        </small>
+                    </div>
+                    
+                    <h6 class="fw-bold">取込手順</h6>
+                    <ol class="list-group list-group-numbered">
+                        <li class="list-group-item">
+                            上記の形式でCSVファイルを準備
+                        </li>
+                        <li class="list-group-item">
+                            「ファイルを選択」ボタンでCSVファイルを選択
+                        </li>
+                        <li class="list-group-item">
+                            「アップロード」ボタンを押す
+                        </li>
+                        <li class="list-group-item">
+                            取込結果を確認する
+                        </li>
+                    </ol>
+                    
+                    <div class="alert alert-info mt-3">
+                        <small>
+                            <i class="fas fa-info-circle"></i>
+                            <strong>注意：</strong>
+                            同じPRD_IDが既に存在する場合は、データが更新されます。
+                            新しいPRD_IDの場合は、新規追加されます。
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- フラッシュメッセージ -->
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-info mt-3" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</div>
+{% endblock %} 

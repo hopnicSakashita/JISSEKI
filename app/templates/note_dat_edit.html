@@ -1,0 +1,315 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>特記事項 編集</h2>
+    <form method="post">
+        <div class="form-group">
+            <label>ロットNo.</label>
+            <input type="text" name="lot_no" class="form-control" value="{{ note.NOTE_LOT_NO }}">
+        </div>
+        <div class="form-group">
+            <label>入力日</label>
+            <input type="date" name="note_date" class="form-control" value="{{ note.NOTE_DATE.strftime('%Y-%m-%d') if note.NOTE_DATE else '' }}" required>
+        </div>
+        <div class="form-group">
+            <label>入力者</label>
+            <select name="user_id" class="form-control">
+                <option value="">選択してください</option>
+                {% for w in workers %}
+                    <option value="{{ w.WRK_ID }}" {% if note.NOTE_USER|string == w.WRK_ID|string %}selected{% endif %}>{{ w.WRK_NM }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>項目名</label>
+            <input type="text" name="title" class="form-control" maxlength="40" value="{{ note.NOTE_TITLE }}">
+        </div>
+        <div class="form-group">
+            <label>内容</label>
+            <textarea name="content" class="form-control" maxlength="200" rows="3">{{ note.NOTE_CNTNT }}</textarea>
+        </div>
+        
+        <!-- 現在の画像表示 -->
+        <div class="form-group">
+            <label>現在の画像</label>
+            <div id="currentImagePreview">
+                {% if note.NOTE_PATH %}
+                    <img src="{{ url_for('static', filename='images/notes/' + note.NOTE_PATH) }}" 
+                         alt="現在の画像" 
+                         style="max-width: 320px; max-height: 240px; border: 1px solid #ccc;" 
+                         class="img-thumbnail">
+                    <button type="button" id="deleteCurrentImage" class="btn btn-sm btn-danger ml-2">現在の画像を削除</button>
+                {% else %}
+                    <p class="text-muted">画像なし</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- カメラ機能 -->
+        <div class="form-group">
+            <label>画像撮影（新しい画像で置き換え）</label>
+            <div class="mb-2">
+                <label for="quality">画質:</label>
+                                 <select id="quality" class="form-control" style="width: auto; display: inline-block; margin-left: 10px;">
+                     <option value="0.5">低画質</option>
+                     <option value="0.7" selected>中画質</option>
+                     <option value="1.0">高画質</option>
+                 </select>
+            </div>
+            <div class="camera-controls mb-3">
+                <button type="button" id="startCamera" class="btn btn-success">カメラ開始</button>
+                <button type="button" id="capturePhoto" class="btn btn-primary" disabled>撮影</button>
+                <button type="button" id="stopCamera" class="btn btn-secondary" disabled>カメラ停止</button>
+                <button type="button" id="clearPhoto" class="btn btn-warning" style="display: none;">撮影した画像を削除</button>
+            </div>
+            <div class="zoom-controls mb-2" id="zoomControls" style="display: none;">
+                <label>ズーム:</label>
+                <button type="button" id="zoomOut" class="btn btn-sm btn-outline-secondary">ー</button>
+                <span id="zoomValue" class="mx-2">1.0x</span>
+                <button type="button" id="zoomIn" class="btn btn-sm btn-outline-secondary">＋</button>
+                <input type="range" id="zoomSlider" min="1" max="3" step="0.1" value="1" class="ml-2" style="width: 100px;">
+            </div>
+            <div id="cameraContainer" style="width: 320px; height: 240px; border: 1px solid #ccc; overflow: hidden; display: none; position: relative;">
+                <video id="camera" width="320" height="240" style="transform-origin: center; position: absolute; top: 0; left: 0;"></video>
+            </div>
+            <canvas id="canvas" style="display: none;"></canvas>
+            <div id="photoPreview"></div>
+            <input type="hidden" id="photoData" name="photo_data">
+            <input type="hidden" id="deleteImage" name="delete_image" value="0">
+        </div>
+        
+        <button type="submit" class="btn btn-primary" onclick="return submitForm()">更新</button>
+        <a href="{{ url_for('main.note_dat_list') }}" class="btn btn-secondary">戻る</a>
+    </form>
+    
+    <script>
+        let camera = document.getElementById('camera');
+        let canvas = document.getElementById('canvas');
+        let photoPreview = document.getElementById('photoPreview');
+        let photoData = document.getElementById('photoData');
+        let stream = null;
+        let currentZoom = 1.0;
+        
+        // 現在の画像を削除
+        document.getElementById('deleteCurrentImage')?.addEventListener('click', function() {
+            if (confirm('現在の画像を削除しますか？')) {
+                document.getElementById('currentImagePreview').innerHTML = '<p class="text-muted">画像なし</p>';
+                document.getElementById('deleteImage').value = '1';
+            }
+        });
+        
+                 document.getElementById('startCamera').addEventListener('click', async function() {
+             try {
+                 stream = await navigator.mediaDevices.getUserMedia({ 
+                     video: { 
+                         width: { ideal: 1280, max: 1920 },
+                         height: { ideal: 720, max: 1080 },
+                         facingMode: { ideal: "environment" },  // アウトカメラ（背面カメラ）を指定
+                         frameRate: { ideal: 30 },
+                         aspectRatio: { ideal: 16/9 }
+                     } 
+                 });
+                camera.srcObject = stream;
+                document.getElementById('cameraContainer').style.display = 'block';
+                camera.play();
+                
+                this.disabled = true;
+                document.getElementById('capturePhoto').disabled = false;
+                document.getElementById('stopCamera').disabled = false;
+                document.getElementById('zoomControls').style.display = 'block';
+                         } catch (err) {
+                 console.error('カメラエラー:', err);
+                 
+                 // よりシンプルな設定でリトライ
+                 try {
+                     stream = await navigator.mediaDevices.getUserMedia({ 
+                         video: { 
+                             width: 320,
+                             height: 240,
+                             facingMode: "environment"
+                         } 
+                     });
+                     camera.srcObject = stream;
+                     document.getElementById('cameraContainer').style.display = 'block';
+                     camera.play();
+                     
+                     this.disabled = true;
+                     document.getElementById('capturePhoto').disabled = false;
+                     document.getElementById('stopCamera').disabled = false;
+                     document.getElementById('zoomControls').style.display = 'block';
+                     
+                     alert('低解像度モードでカメラを開始しました');
+                 } catch (retryErr) {
+                     console.error('カメラリトライエラー:', retryErr);
+                     alert('カメラにアクセスできません。ブラウザの設定を確認してください。エラー: ' + retryErr.message);
+                 }
+             }
+        });
+        
+                 document.getElementById('capturePhoto').addEventListener('click', function() {
+             const quality = parseFloat(document.getElementById('quality').value);
+             
+             // 高画質の場合はより大きなサイズで撮影
+             let maxWidth, maxHeight;
+             
+             if (quality >= 0.9) {
+                 // 高画質：フルHD相当
+                 maxWidth = 1920;
+                 maxHeight = 1080;
+             } else if (quality >= 0.7) {
+                 // 中画質：HD相当
+                 maxWidth = 1280;
+                 maxHeight = 720;
+             } else {
+                 // 低画質：SD相当
+                 maxWidth = 640;
+                 maxHeight = 480;
+             }
+             
+             let canvasWidth = camera.videoWidth;
+             let canvasHeight = camera.videoHeight;
+             
+             // アスペクト比を維持して最適サイズに調整
+             if (canvasWidth > maxWidth || canvasHeight > maxHeight) {
+                 const ratio = Math.min(maxWidth / canvasWidth, maxHeight / canvasHeight);
+                 canvasWidth = canvasWidth * ratio;
+                 canvasHeight = canvasHeight * ratio;
+             } else if (quality >= 0.9 && canvasWidth < maxWidth && canvasHeight < maxHeight) {
+                 // 高画質の場合、元の解像度が低い場合はそのまま使用（アップスケールしない）
+                 canvasWidth = camera.videoWidth;
+                 canvasHeight = camera.videoHeight;
+             }
+             
+             canvas.width = canvasWidth;
+             canvas.height = canvasHeight;
+             
+             const ctx = canvas.getContext('2d');
+             
+             // 高画質レンダリング設定
+             ctx.imageSmoothingEnabled = true;
+             ctx.imageSmoothingQuality = 'high';
+             
+             // ズームが適用されている場合の処理
+             if (currentZoom > 1) {
+                 // ズーム中心を計算（画面中央）
+                 const centerX = camera.videoWidth / 2;
+                 const centerY = camera.videoHeight / 2;
+                 
+                 // ズームされた領域のサイズを計算
+                 const zoomedWidth = camera.videoWidth / currentZoom;
+                 const zoomedHeight = camera.videoHeight / currentZoom;
+                 
+                 // 切り取り開始位置を計算（中央から切り取り）
+                 const sourceX = centerX - zoomedWidth / 2;
+                 const sourceY = centerY - zoomedHeight / 2;
+                 
+                 // ズームされた部分を切り取って描画
+                 ctx.drawImage(camera, 
+                     sourceX, sourceY, zoomedWidth, zoomedHeight,  // 元画像の切り取り範囲
+                     0, 0, canvasWidth, canvasHeight               // キャンバスの描画範囲
+                 );
+             } else {
+                 // 通常の描画（ズームなし）
+                 ctx.drawImage(camera, 0, 0, canvasWidth, canvasHeight);
+             }
+             
+             // 画質を適用してBase64データを作成
+             const dataURL = canvas.toDataURL('image/jpeg', quality);
+             
+             // データサイズをチェック（5MB制限）
+             const sizeInBytes = dataURL.length * 0.75; // Base64は約75%の効率
+             const sizeInMB = sizeInBytes / (1024 * 1024);
+             
+             if (sizeInMB > 5) {
+                 alert('画像サイズが大きすぎます（' + sizeInMB.toFixed(2) + 'MB）。画質を下げてください。');
+                 return;
+             }
+             
+             photoData.value = dataURL;
+             
+             // プレビュー表示
+             photoPreview.innerHTML = '<img src="' + dataURL + '" alt="撮影画像" style="max-width: 320px; max-height: 240px; border: 1px solid #ccc;" class="img-thumbnail"><br><small>画像サイズ: ' + sizeInMB.toFixed(2) + 'MB</small>';
+             document.getElementById('clearPhoto').style.display = 'inline-block';
+             
+             // カメラを停止
+             stopCameraFunction();
+         });
+        
+        document.getElementById('stopCamera').addEventListener('click', stopCameraFunction);
+        
+        document.getElementById('clearPhoto').addEventListener('click', function() {
+            photoPreview.innerHTML = '';
+            photoData.value = '';
+            this.style.display = 'none';
+        });
+        
+        function stopCameraFunction() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            document.getElementById('cameraContainer').style.display = 'none';
+            camera.srcObject = null;
+            
+            document.getElementById('startCamera').disabled = false;
+            document.getElementById('capturePhoto').disabled = true;
+            document.getElementById('stopCamera').disabled = true;
+            document.getElementById('zoomControls').style.display = 'none';
+            currentZoom = 1.0;
+            updateZoomDisplay();
+        }
+        
+                 // ズーム機能
+         function updateZoomDisplay() {
+             camera.style.transform = `scale(${currentZoom})`;
+             document.getElementById('zoomValue').textContent = currentZoom.toFixed(1) + 'x';
+             document.getElementById('zoomSlider').value = currentZoom;
+         }
+         
+         document.getElementById('zoomIn').addEventListener('click', function() {
+             currentZoom = Math.min(currentZoom + 0.2, 3.0);
+             updateZoomDisplay();
+         });
+         
+         document.getElementById('zoomOut').addEventListener('click', function() {
+             currentZoom = Math.max(currentZoom - 0.2, 1.0);
+             updateZoomDisplay();
+         });
+         
+         document.getElementById('zoomSlider').addEventListener('input', function() {
+             currentZoom = parseFloat(this.value);
+             updateZoomDisplay();
+         });
+         
+         // ページを離れる時にカメラを停止
+         window.addEventListener('beforeunload', stopCameraFunction);
+         
+         // フォーム送信時のエラーハンドリング
+         function submitForm() {
+             try {
+                 // JavaScriptエラーを無視してフォーム送信を続行
+                 console.log('フォーム送信開始（編集）');
+                 return true;
+             } catch (error) {
+                 console.error('送信時エラー:', error);
+                 // エラーがあってもフォーム送信は続行
+                 return true;
+             }
+         }
+         
+         // グローバルエラーハンドラーを追加
+         window.addEventListener('error', function(e) {
+             console.error('JavaScriptエラーをキャッチしました:', e.error);
+             // エラーを無視して処理を続行
+             return true;
+         });
+         
+         // 未処理のPromise拒否をキャッチ
+         window.addEventListener('unhandledrejection', function(e) {
+             console.error('未処理のPromise拒否をキャッチしました:', e.reason);
+             // エラーを無視して処理を続行
+             e.preventDefault();
+         });
+     </script>
+</div>
+{% endblock %} 

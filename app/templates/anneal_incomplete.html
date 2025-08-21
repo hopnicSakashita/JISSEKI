@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block style %}
+<style>
+.table-fixed-head {
+    overflow-y: auto;
+    max-height: 70vh;  /* ビューポートの70%の高さ */
+}
+
+.table-fixed-head thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background-color: #e7f1ff; /* table-primaryの色 */
+    border-bottom: 2px solid #dee2e6;
+}
+
+/* テーブルのセルの最小幅を設定 */
+.table-fixed-head th,
+.table-fixed-head td {
+    min-width: 100px;
+    padding: 8px;
+}
+
+/* 特定のカラムの幅を調整 */
+.table-fixed-head th:nth-child(1), /* R1注入日 */
+.table-fixed-head td:nth-child(1) {
+    min-width: 120px;
+}
+
+.table-fixed-head th:nth-child(2), /* ロットNo. */
+.table-fixed-head td:nth-child(2) {
+    min-width: 150px;
+}
+
+.table-fixed-head th:nth-child(3), /* 製品名 */
+.table-fixed-head td:nth-child(3) {
+    min-width: 200px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>アニール未完了データ一覧</h2>
+    
+
+    <!-- 結果表示 -->
+    {% if records %}
+    <div class="table-fixed-head">
+        <table class="table table-striped table-bordered">
+            <thead class="table-primary">
+                <tr>
+                    <th>R1注入日</th>
+                    <th>ロットNo.</th>
+                    <th>製品名</th>
+                    <th>モノマー種</th>
+                    <th>離型日</th>
+                    <th>重合日数</th>
+                    <th>R1良品数</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    <td>{{ record.PRR_R1_IN_DATE.strftime('%Y/%m/%d') }}</td>
+                    <td>{{ record.PRR_LOT_NO }}</td>
+                    <td>{{ record.PRD_NM if record.PRD_NM else '不明' }}</td>
+                    <td>{{ record.MNO_NM if record.MNO_NM else '不明' }}</td>
+                    <td>{{ record.PRR_RELEASE_DT.strftime('%Y/%m/%d') if record.PRR_RELEASE_DT else '' }}</td>
+                    <td>{{ record.PRD_PLY_DAYS }}</td>
+                    <td>{{ record.PRR_R1_GOOD_CNT }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        該当するデータがありません。
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

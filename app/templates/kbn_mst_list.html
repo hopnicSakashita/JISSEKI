@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>区分マスタ一覧</h2>
+    
+    <!-- 検索フォーム -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="form-inline">
+                <div class="form-group mr-3">
+                    <label for="kbn_typ" class="mr-2">区分種別:</label>
+                    <select name="kbn_typ" id="kbn_typ" class="form-control">
+                        <option value="">--- 全て ---</option>
+                        {% for typ in kbn_types %}
+                        <option value="{{ typ[0] }}" {% if selected_typ == typ[0] %}selected{% endif %}>
+                            {{ typ[0] }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary mr-2">検索</button>
+                <a href="{{ url_for('master.kbn_mst_create') }}" class="btn btn-success">新規作成</a>
+            </form>
+        </div>
+    </div>
+    
+    <!-- データ一覧 -->
+    <div class="card">
+        <div class="card-body">
+            {% if records %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>区分種別</th>
+                            <th>区分ID</th>
+                            <th>区分名</th>
+                            <th width="120">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in records %}
+                        <tr>
+                            <td>{{ record.KBN_TYP }}</td>
+                            <td>{{ record.KBN_ID }}</td>
+                            <td>{{ record.KBN_NM }}</td>
+                            <td>
+                                <a href="{{ url_for('master.kbn_mst_edit', kbn_typ=record.KBN_TYP, kbn_id=record.KBN_ID) }}" 
+                                   class="btn btn-sm btn-outline-primary" title="編集">
+                                    <i class="fas fa-edit"></i> 編集
+                                </a>
+                                <button type="button" 
+                                        class="btn btn-sm btn-outline-danger ml-1" 
+                                        title="削除"
+                                        onclick="deleteRecord('{{ record.KBN_TYP }}', '{{ record.KBN_ID }}')">
+                                    <i class="fas fa-trash"></i> 削除
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-3">
+                <small class="text-muted">
+                    {{ records|length }}件のデータが見つかりました。
+                </small>
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <p class="text-muted">データが見つかりませんでした。</p>
+                <a href="{{ url_for('master.kbn_mst_create') }}" class="btn btn-success">新規作成</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 削除確認モーダル -->
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">削除確認</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                この区分マスタを削除してもよろしいですか？<br>
+                区分種別: <span id="deleteKbnTyp"></span><br>
+                区分ID: <span id="deleteKbnId"></span>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">キャンセル</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDelete()">削除</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let deleteKbnTyp = '';
+let deleteKbnId = '';
+
+function deleteRecord(kbnTyp, kbnId) {
+    deleteKbnTyp = kbnTyp;
+    deleteKbnId = kbnId;
+    document.getElementById('deleteKbnTyp').textContent = kbnTyp;
+    document.getElementById('deleteKbnId').textContent = kbnId;
+    $('#deleteModal').modal('show');
+}
+
+function confirmDelete() {
+    // URLを動的に構築
+    const url = `/kbn_mst/delete/${encodeURIComponent(deleteKbnTyp)}/${encodeURIComponent(deleteKbnId)}`;
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        $('#deleteModal').modal('hide');
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('削除に失敗しました: ' + data.message);
+        }
+    })
+    .catch(error => {
+        $('#deleteModal').modal('hide');
+        alert('削除処理中にエラーが発生しました: ' + error);
+    });
+}
+</script>
+{% endblock %} 

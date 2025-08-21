@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>進捗状況確認</h2>
+    
+    <!-- 検索フォーム -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('main.progress') }}">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="r1_in_date">R1注入日開始</label>
+                            <input type="date" class="form-control" id="r1_in_date" name="r1_in_date" value="{{ request.args.get('r1_in_date', '') }}">
+                        </div>
+                        <div class="form-group">
+                            <label for="r1_in_date2">R1注入日終了</label>
+                            <input type="date" class="form-control" id="r1_in_date2" name="r1_in_date2" value="{{ request.args.get('r1_in_date2', '') }}">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="mono_syu">モノマー種別</label>
+                            <select class="form-control" id="mono_syu" name="mono_syu">
+                                <option value="">すべて</option>
+                                {% for mono in mono_list %}
+                                <option value="{{ mono.MNO_SYU }}" {% if request.args.get('mono_syu') == mono.MNO_SYU %}selected{% endif %}>
+                                    {{ mono.MNO_NM }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <button type="submit" class="btn btn-primary form-control">検索</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 進捗状況テーブル -->
+    {% if progress_data %}
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>モノマー種別</th>
+                            <th>R1注入</th>
+                            <th>R2注入</th>
+                            <th>離型</th>
+                            <th>アニール</th>
+                            <th>一次検査</th>
+                            <th>二次検査</th>
+                            <th>三次検査</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for data in progress_data %}
+                        <tr>
+                            <td>{{ data.mono_nm }}</td>
+                            <td class="{{ 'table-success' if data.r1_inject else '' }}">
+                                {{ data.r1_inject_count }}/{{ data.total_count }}
+                            </td>
+                            <td class="{{ 'table-success' if data.r2_inject else '' }}">
+                                {{ data.r2_inject_count }}/{{ data.total_count }}
+                            </td>
+                            <td class="{{ 'table-success' if data.release else '' }}">
+                                {{ data.release_count }}/{{ data.total_count }}
+                            </td>
+                            <td class="{{ 'table-success' if data.anneal else '' }}">
+                                {{ data.anneal_count }}/{{ data.total_count }}
+                            </td>
+                            <td class="{{ 'table-success' if data.chk1 else '' }}">
+                                {{ data.chk1_count }}/{{ data.total_count }}
+                            </td>
+                            <td class="{{ 'table-success' if data.chk2 else '' }}">
+                                {{ data.chk2_count }}/{{ data.total_count }}
+                            </td>
+                            <td class="{{ 'table-success' if data.chk3 else '' }}">
+                                {{ data.chk3_count }}/{{ data.total_count }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 
+
+{% block scripts %}
+<script>
+    document.getElementById('csv-import-time').textContent = '実績CSVインポート時間: {{ csv_import_time }}';
+</script>
+{% endblock %}

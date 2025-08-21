@@ -1,0 +1,28 @@
+﻿/* 膜加工データ */
+CREATE TABLE `FMP_DAT` (
+    `FMP_ID` int AUTO_INCREMENT PRIMARY KEY,
+    `FMP_INSP_DATE` datetime COMMENT '検査日',
+    `FMP_PROC_DATE` datetime COMMENT '加工日',
+    `FMP_COLOR` decimal(2) COMMENT '色',
+    `FMP_PVA_LOT_NO` decimal(10) COMMENT 'PVAロットNo',
+    `FMP_BIKO` varchar(30) COMMENT '備考',    
+    `FMP_FILM_CURVE` decimal(2) COMMENT '膜カーブ',
+    `FMP_PROC_SHTS` decimal(5) COMMENT '加工枚数',
+    `FMP_WRINKLE_A` decimal(5) COMMENT 'シワA',
+    `FMP_WRINKLE_B` decimal(5) COMMENT 'シワB',
+    `FMP_TEAR` decimal(5) COMMENT '裂け',
+    `FMP_FOREIGN` decimal(5) COMMENT 'ブツ',
+    `FMP_FIBER` decimal(5) COMMENT '繊維',
+    `FMP_SCRATCH` decimal(5) COMMENT 'キズ',
+    `FMP_HOLE` decimal(5) COMMENT '穴',
+    `FMP_PRM_OTHERS` decimal(5) COMMENT '一次その他',
+    `FMP_PRM_GOOD_QTY` decimal(5) COMMENT '一次良品数',
+    `FMP_CLR_FADE` decimal(5) COMMENT '色抜け',
+    `FMP_CLR_IRREG` decimal(5) COMMENT '色ムラ',
+    `FMP_DYE_STREAK` decimal(5) COMMENT '染スジ',
+    `FMP_DIRT` decimal(5) COMMENT '汚れ',
+    `FMP_OTHERS` decimal(5) COMMENT 'その他',
+    `FMP_GRADE_A` decimal(5) COMMENT 'A品',
+    `FMP_GRADE_B` decimal(5) COMMENT 'B品',
+    `FMP_GRADE_C` decimal(5) COMMENT 'C品'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='膜加工データ';

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生産実績管理システム（JISSEKI）業務フロー図</title>
+    <script src="https://unpkg.com/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .info {
+            background-color: #e8f5e9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4CAF50;
+        }
+        .mermaid {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .legend {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+        .legend h3 {
+            color: #007bff;
+            margin-top: 0;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            margin-right: 10px;
+        }
+        .print-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        .print-btn:hover {
+            background-color: #45a049;
+        }
+        @media print {
+            body { margin: 0; padding: 0; background: white; }
+            .container { box-shadow: none; }
+            .print-btn { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>生産実績管理システム（JISSEKI）業務フロー図</h1>
+        
+        <div class="info">
+            <strong>📋 作成日:</strong> 2025年6月27日<br>
+            <strong>🏭 システム名:</strong> 生産実績管理システム（JISSEKI）<br>
+            <strong>⚙️ 技術スタック:</strong> Python Flask + MySQL + JavaScript<br>
+            <strong>📊 画面数:</strong> 55画面 | <strong>🔗 API数:</strong> 23API
+        </div>
+
+        <div style="text-align: center; margin: 20px 0;">
+            <button class="print-btn" onclick="window.print()">🖨️ 印刷</button>
+            <button class="print-btn" onclick="downloadAsPNG()">📸 PNG保存</button>
+        </div>
+
+        <div class="mermaid">
+            flowchart TD
+                Start([システム開始]) --> Login[ログイン認証]
+                Login --> MainMenu{メインメニュー選択}
+                
+                %% データ取込フロー
+                MainMenu --> CSVUpload[CSV取込]
+                ProgressMgmt --> FMCList[膜カットデータ一覧]
+                FMCList --> FMCinput[膜カットデータ入力]
+                
+                CSVUpload --> Production[実績CSV取込]
+                CSVUpload --> InjectionDate[注入日・検査日<br/>CSV取込]
+                Ishida1 --> FilmProcess[膜加工データ<br/>CSV取込]
+                Ishida2 --> SpinCoat[ハード・スピンコートデータ<br/>CSV取込]
+                
+                FMCinput --> Database[(データベース<br/>保存)]
+                Production --> Database
+                InjectionDate --> Database
+                FilmProcess --> Database
+                SpinCoat --> Database
+                
+                %% 進捗管理フロー
+                MainMenu --> ProgressMgmt[実績]
+                ProgressMgmt --> SearchResults[実績検索・照会]
+                ProgressMgmt --> ProgressStatus[進捗状況確認]
+                
+                %% 品質分析フロー
+                MainMenu --> QualityAnalysis[分析]
+                QualityAnalysis --> DefectAnalysis[不良率分析]
+                QualityAnalysis --> MonomerAnalysis[モノマー種別分析]
+                QualityAnalysis --> DetailAnalysis[不良項目別分析]
+                QualityAnalysis --> FilmCutAnalysis[膜カット不良率分析]
+                
+                %% 石田工程フロー
+                MainMenu --> Ishida1[石田第一]
+                MainMenu --> Ishida2[石田第二]
+                
+                Ishida1 --> ColorDefectInput[カラー不良データ入力]
+                Ishida1 --> FmpAnalysis[膜加工不良分析]
+                ColorDefectInput --> Database
+                
+                Ishida2 --> SPCProcess[ハード・スピンコート分析]
+                
+                %% 特記事項管理
+                ProgressMgmt --> NoteList[特記事項一覧]
+                NoteList --> NoteInput[特記事項入力]
+                NoteInput --> Database
+
+                %% スタイル定義
+                classDef default fill:#f9f9f9
+                classDef start fill:#e1f5fe
+                classDef menu fill:#f3e5f5
+                classDef database fill:#004d40,stroke:#004d40,color:#fff
+                classDef csvImport fill:#ff7043,stroke:#ff7043,color:#fff
+                classDef list fill:#5c6bc0,stroke:#5c6bc0,color:#fff
+                classDef input fill:#1e88e5,stroke:#1e88e5,color:#fff
+                classDef analysis fill:#43a047,stroke:#43a047,color:#fff
+                classDef search fill:#7b1fa2,stroke:#7b1fa2,color:#fff
+
+                %% クラス適用
+                class Start start
+                class MainMenu,ProgressMgmt,QualityAnalysis,Ishida1,Ishida2 menu
+                class Database database
+                class CSVUpload,Production,InjectionDate,FilmProcess,SpinCoat csvImport
+                class FMCList,NoteList list
+                class FMCinput,ColorDefectInput,NoteInput input
+                class DefectAnalysis,MonomerAnalysis,DetailAnalysis,FilmCutAnalysis,FmpAnalysis,SPCProcess analysis
+                class SearchResults,ProgressStatus search
+                </div>
+
+                <div class="legend">
+                    <h3>📋 フロー図の説明</h3>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #e1f5fe;"></div>
+                        <span><strong>システム開始点</strong> - ログイン認証からスタート</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #f3e5f5;"></div>
+                        <span><strong>メインメニュー項目</strong> - 主要機能カテゴリ</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #ff7043; color: #ffffff;"></div>
+                        <span><strong>CSV取込機能</strong> - 各種CSVデータの取込処理</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #5c6bc0; color: #ffffff;"></div>
+                        <span><strong>一覧機能</strong> - データの一覧表示</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #1e88e5; color: #ffffff;"></div>
+                        <span><strong>入力機能</strong> - データの手動入力</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #43a047; color: #ffffff;"></div>
+                        <span><strong>分析機能</strong> - 各種データの分析処理</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #7b1fa2; color: #ffffff;"></div>
+                        <span><strong>検索・照会機能</strong> - データの検索・状況確認</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #004d40; color: #ffffff;"></div>
+                        <span><strong>データベース</strong> - データの永続化</span>
+                    </div>
+                </div>
+    </div>
+
+    <script>
+        // Mermaid初期化
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true
+            }
+        });
+
+        // PNG保存機能
+        function downloadAsPNG() {
+            alert('PNG保存機能:\n1. ブラウザで右クリック→「名前を付けて保存」\n2. またはスクリーンショット機能を使用\n3. 印刷設定で「PDFに保存」も可能です');
+        }
+
+        // 印刷時のスタイル調整
+        window.addEventListener('beforeprint', function() {
+            document.body.style.fontSize = '12px';
+        });
+
+        window.addEventListener('afterprint', function() {
+            document.body.style.fontSize = '';
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>不良率分析</h2>
+    
+    <!-- フィルター部分 -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form id="filterForm">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="dateType">日付種類</label>
+                            <select class="form-control" id="dateType">
+                                <option value="r2">R2注入日</option>
+                                <option value="chk">検査日</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="dateFrom">開始日</label>
+                            <input type="date" class="form-control" id="dateFrom">
+                            <button id="today-button" class="btn btn-info m-1">今日</button>
+                            <button id="yesterday-button" class="btn btn-info m-1">昨日</button>
+                            <button id="this-month-button" class="btn btn-info m-1">今月</button>
+                            <button id="last-month-button" class="btn btn-info m-1">前月</button>
+                
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="dateTo">終了日</label>
+                            <input type="date" class="form-control" id="dateTo">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <button type="submit" class="btn btn-primary form-control">検索</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 結果テーブル -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped" id="resultTable">
+                    <thead>
+                        <tr>
+                            <th>モノマー名</th>
+                            <th>不良項目</th>
+                            <th>注入数</th>
+                            <th>不良数</th>
+                            <th>不良率(%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const filterForm = document.getElementById('filterForm');
+    const resultTable = document.getElementById('resultTable').getElementsByTagName('tbody')[0];
+
+    // 今日ボタン
+    document.getElementById('today-button').addEventListener('click', function() {
+        const today = new Date();
+        document.getElementById('dateFrom').value = formatDateForInput(today);
+        document.getElementById('dateTo').value = formatDateForInput(today);
+    });
+    
+    // 昨日ボタン
+    document.getElementById('yesterday-button').addEventListener('click', function() {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        document.getElementById('dateFrom').value = formatDateForInput(yesterday);
+        document.getElementById('dateTo').value = formatDateForInput(yesterday);
+    });
+    
+    document.getElementById('this-month-button').addEventListener('click', function(e) {
+        e.preventDefault();
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        document.getElementById('dateFrom').value = formatDateForInput(firstDay);
+        document.getElementById('dateTo').value = formatDateForInput(lastDay);
+    });
+
+    document.getElementById('last-month-button').addEventListener('click', function(e) {
+        e.preventDefault();
+        const now = new Date();
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1);
+        const firstDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 1);
+        const lastDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0);
+        document.getElementById('dateFrom').value = formatDateForInput(firstDay);
+        document.getElementById('dateTo').value = formatDateForInput(lastDay);
+    });
+    
+
+
+    // データ取得関数
+    function fetchData() {
+        const dateType = document.getElementById('dateType').value;
+        const dateFrom = document.getElementById('dateFrom').value;
+        const dateTo = document.getElementById('dateTo').value;
+
+        fetch(`/api/high_defect_rate_data?date_type=${encodeURIComponent(dateType)}&date_from=${encodeURIComponent(dateFrom)}&date_to=${encodeURIComponent(dateTo)}`)
+            .then(response => response.json())
+            .then(data => {
+                resultTable.innerHTML = '';
+                data.defect_data.forEach(item => {
+                    const row = document.createElement('tr');
+                    const targetClass = item.target && item.defect_rate > item.target ? 'text-danger' : '';
+                    
+                    row.innerHTML = `
+                        <td>${item.mono_name}</td>
+                        <td>${item.defect_label}</td>
+                        <td>${item.total_inject.toLocaleString()}</td>
+                        <td>${item.defect_count.toLocaleString()}</td>
+                        <td class="${targetClass}">${item.defect_rate.toFixed(2)}</td>
+                    `;
+                    resultTable.appendChild(row);
+                });
+                document.getElementById('csv-import-time').textContent = '実績CSVインポート時間: ' + data.csv_import_time;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('データの取得中にエラーが発生しました。');
+            });
+    }
+
+    // フォーム送信時の処理
+    filterForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        fetchData();
+    });
+
+    // 初期表示
+    fetchData();
+});
+</script>
+
+<style>
+.text-danger {
+    color: #dc3545 !important;
+    font-weight: bold;
+}
+
+.table-responsive {
+    max-height: 600px;
+    overflow-y: auto;
+    position: relative;
+}
+
+.table thead th {
+    position: sticky;
+    top: 0;
+    background-color: #f8f9fa;
+    z-index: 10;
+    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+.table thead th::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    border-bottom: 1px solid #dee2e6;
+}
+</style>
+{% endblock %} 

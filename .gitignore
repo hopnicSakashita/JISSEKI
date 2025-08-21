@@ -1,0 +1,19 @@
+# 環境設定ファイル
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 仮想環境
+venv/
+env/
+
+# アップロードディレクトリ
+uploads/
+
+# ログファイル
+*.log 

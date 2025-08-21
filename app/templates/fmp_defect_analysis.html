@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>膜加工不良率分析</h2>
+    
+    <!-- 検索フォーム -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form id="searchForm" class="row g-3">
+                <div class="col-md-3 mb-3">
+                    <label for="start_date" class="form-label">検査日開始</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="end_date" class="form-label">検査日終了</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="proc_date" class="form-label">加工日</label>
+                    <input type="date" class="form-control" id="proc_date" name="proc_date">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="color" class="form-label">色</label>
+                    <select class="form-control" id="color" name="color">
+                        <option value="">選択</option>
+                        {% for c in colors %}
+                        <option value="{{ c.KBN_ID }}">{{ c.KBN_NM }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="pva_lot_no" class="form-label">PVAロットNo</label>
+                    <input type="number" class="form-control" id="pva_lot_no" name="pva_lot_no">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="film_curve" class="form-label">膜カーブ</label>
+                    <select class="form-control" id="film_curve" name="film_curve">
+                        <option value="">選択</option>
+                        {% for c in film_curves %}
+                        <option value="{{ c.KBN_ID }}">{{ c.KBN_NM }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">分析実行</button>
+                    <button type="reset" class="btn btn-secondary">リセット</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 結果表示エリア -->
+    <div id="resultArea" style="display: none;">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">分析結果</h5>
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <p>総加工枚数: <span id="totalSheets">0</span>枚</p>
+                    </div>
+                    <div class="col-md-4">
+                        <p>一次良品数: <span id="primaryGood">0</span>枚</p>
+                    </div>
+                    <div class="col-md-4">
+                        <p>一次良品率: <span id="primaryGoodRate">0</span>%</p>
+                    </div>
+                </div>
+                
+                <!-- 一次検査の不良率 -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h6>一次検査の不良率（加工枚数に対する割合）</h6>
+                    </div>
+                    <div class="col-md-6">
+                        <canvas id="primaryDefectChart"></canvas>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>不良項目</th>
+                                        <th>不良率</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="primaryDefectTable">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 二次検査の不良率 -->
+                <div class="row">
+                    <div class="col-12">
+                        <h6>二次検査の不良率（一次良品数に対する割合）</h6>
+                    </div>
+                    <div class="col-md-6">
+                        <canvas id="secondaryDefectChart"></canvas>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>不良項目</th>
+                                        <th>不良率</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="secondaryDefectTable">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 等級別集計 -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h6>等級別集計（一次良品数に対する割合）</h6>
+                    </div>
+                    <div class="col-md-6">
+                        <canvas id="gradeChart"></canvas>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>等級</th>
+                                        <th>数量</th>
+                                        <th>割合</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="gradeTable">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let primaryDefectChart = null;
+let secondaryDefectChart = null;
+let gradeChart = null;
+
+document.getElementById('searchForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const params = new URLSearchParams();
+    
+    for (let [key, value] of formData.entries()) {
+        if (value) {
+            params.append(key, value);
+        }
+    }
+    
+    try {
+        const response = await fetch(`/api/fmp_defect_analysis?${params.toString()}`);
+        const data = await response.json();
+        
+        if (response.ok) {
+            displayResults(data);
+        } else {
+            alert(data.error || 'エラーが発生しました');
+        }
+    } catch (error) {
+        alert('エラーが発生しました');
+        console.error(error);
+    }
+});
+
+function displayResults(data) {
+    // 結果表示エリアを表示
+    document.getElementById('resultArea').style.display = 'block';
+    
+    // 基本情報の表示
+    document.getElementById('totalSheets').textContent = Number(data.total_sheets).toLocaleString();
+    document.getElementById('primaryGood').textContent = Number(data.primary_good).toLocaleString();
+    document.getElementById('primaryGoodRate').textContent = Number(data.primary_good_rate).toFixed(2);
+    
+    // 一次検査のテーブル更新
+    const primaryTableBody = document.getElementById('primaryDefectTable');
+    primaryTableBody.innerHTML = '';
+    
+    for (const [defect, rate] of Object.entries(data.primary_defect_rates)) {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${defect}</td>
+            <td>${Number(rate).toFixed(2)}%</td>
+        `;
+        primaryTableBody.appendChild(row);
+    }
+    
+    // 二次検査のテーブル更新
+    const secondaryTableBody = document.getElementById('secondaryDefectTable');
+    secondaryTableBody.innerHTML = '';
+    
+    for (const [defect, rate] of Object.entries(data.secondary_defect_rates)) {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${defect}</td>
+            <td>${Number(rate).toFixed(2)}%</td>
+        `;
+        secondaryTableBody.appendChild(row);
+    }
+
+    // 等級別テーブル更新
+    const gradeTableBody = document.getElementById('gradeTable');
+    gradeTableBody.innerHTML = '';
+    
+    for (const [grade, info] of Object.entries(data.grade_info)) {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${grade}</td>
+            <td>${Number(info.quantity).toLocaleString()}</td>
+            <td>${Number(info.rate).toFixed(2)}%</td>
+        `;
+        gradeTableBody.appendChild(row);
+    }
+    
+    // 一次検査のグラフ更新
+    if (primaryDefectChart) {
+        primaryDefectChart.destroy();
+    }
+    
+    const primaryCtx = document.getElementById('primaryDefectChart').getContext('2d');
+    primaryDefectChart = new Chart(primaryCtx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(data.primary_defect_rates),
+            datasets: [{
+                label: '不良率 (%)',
+                data: Object.values(data.primary_defect_rates).map(rate => Number(rate)),
+                backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: '不良率 (%)'
+                    }
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: '一次検査の不良率'
+                }
+            }
+        }
+    });
+    
+    // 二次検査のグラフ更新
+    if (secondaryDefectChart) {
+        secondaryDefectChart.destroy();
+    }
+    
+    const secondaryCtx = document.getElementById('secondaryDefectChart').getContext('2d');
+    secondaryDefectChart = new Chart(secondaryCtx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(data.secondary_defect_rates),
+            datasets: [{
+                label: '不良率 (%)',
+                data: Object.values(data.secondary_defect_rates).map(rate => Number(rate)),
+                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: '不良率 (%)'
+                    }
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: '二次検査の不良率'
+                }
+            }
+        }
+    });
+
+    // 等級別グラフ更新
+    if (gradeChart) {
+        gradeChart.destroy();
+    }
+    
+    const gradeCtx = document.getElementById('gradeChart').getContext('2d');
+    gradeChart = new Chart(gradeCtx, {
+        type: 'pie',
+        data: {
+            labels: Object.keys(data.grade_info),
+            datasets: [{
+                data: Object.values(data.grade_info).map(info => info.rate),
+                backgroundColor: [
+                    'rgba(75, 192, 192, 0.5)',
+                    'rgba(255, 206, 86, 0.5)',
+                    'rgba(153, 102, 255, 0.5)'
+                ],
+                borderColor: [
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(255, 206, 86, 1)',
+                    'rgba(153, 102, 255, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: '等級別割合'
+                }
+            }
+        }
+    });
+}
+</script>
+{% endblock %} 

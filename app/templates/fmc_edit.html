@@ -1,0 +1,545 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>膜カットデータ{{ '新規作成' if is_create else '編集' }}</h2>
+    
+    <form method="POST" class="needs-validation" novalidate>
+        {{ form.csrf_token }}
+        
+        <div class="row g-3">
+            <!-- カット日 -->
+            <div class="col-md-2">
+                <div class="form-group">
+                    {{ form.FMC_CUT_DATE.label(class="form-label") }}
+                    {{ form.FMC_CUT_DATE(class="form-control", type="date") }}
+                    {% if form.FMC_CUT_DATE.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.FMC_CUT_DATE.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- R1注入日 -->
+            <div class="col-md-2">
+                <div class="form-group">
+                    {{ form.FMC_R1_INJ_DATE.label(class="form-label") }}
+                    {{ form.FMC_R1_INJ_DATE(class="form-control", type="date") }}
+                    {% if form.FMC_R1_INJ_DATE.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.FMC_R1_INJ_DATE.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- モノマー -->
+            <div class="col-md-2">
+                <div class="form-group">
+                    {{ form.FMC_MONOMER.label(class="form-label") }}
+                    {{ form.FMC_MONOMER(class="form-control") }}
+                    {% if form.FMC_MONOMER.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.FMC_MONOMER.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- アニール№ -->
+            <div class="col-md-2">
+                <div class="form-group">
+                    {{ form.FMC_ANNEAL_NO.label(class="form-label") }}
+                    {{ form.FMC_ANNEAL_NO(class="form-control", value=(form.FMC_ANNEAL_NO.data | int) if form.FMC_ANNEAL_NO.data or '') }}
+                    {% if form.FMC_ANNEAL_NO.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.FMC_ANNEAL_NO.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- カット機№ -->
+            <div class="col-md-2">
+                <div class="form-group">
+                    {{ form.FMC_CUT_MACH_NO.label(class="form-label") }}
+                    {{ form.FMC_CUT_MACH_NO(class="form-control", value=(form.FMC_CUT_MACH_NO.data | int) if form.FMC_CUT_MACH_NO.data or '') }}
+                    {% if form.FMC_CUT_MACH_NO.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.FMC_CUT_MACH_NO.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- アイテム -->
+            <div class="col-md-2">
+                <div class="form-group">
+                    {{ form.FMC_ITEM.label(class="form-label") }}
+                    {{ form.FMC_ITEM(class="form-control") }}
+                    {% if form.FMC_ITEM.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.FMC_ITEM.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- カットメニュー -->
+            <div class="col-md-2">
+                <div class="form-group">
+                    {{ form.FMC_CUT_MENU.label(class="form-label") }}
+                    {{ form.FMC_CUT_MENU(class="form-control") }}
+                    {% if form.FMC_CUT_MENU.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.FMC_CUT_MENU.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 膜加工日 -->
+            <div class="col-md-2">
+                <div class="form-group">
+                    {{ form.FMC_FILM_PROC_DT.label(class="form-label") }}
+                    {{ form.FMC_FILM_PROC_DT(class="form-control", type="date") }}
+                    {% if form.FMC_FILM_PROC_DT.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.FMC_FILM_PROC_DT.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- AM/PM -->
+            <div class="col-md-2">
+                <div class="form-group">
+                    {{ form.FMC_AMPM.label(class="form-label") }}
+                    {{ form.FMC_AMPM(class="form-control") }}
+                </div>
+            </div>
+            
+            <!-- CR膜 -->
+            <div class="col-md-2">
+                <div class="form-group">
+                    {{ form.FMC_CR_FILM.label(class="form-label") }}
+                    {{ form.FMC_CR_FILM(class="form-control") }}
+                    {% if form.FMC_CR_FILM.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.FMC_CR_FILM.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 熱処理日 -->
+            <div class="col-md-2">
+                <div class="form-group">
+                    {{ form.FMC_HEAT_PROC_DT.label(class="form-label") }}
+                    {{ form.FMC_HEAT_PROC_DT(class="form-control", type="date") }}
+                    {% if form.FMC_HEAT_PROC_DT.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.FMC_HEAT_PROC_DT.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 膜カーブ -->
+            <div class="col-md-2">
+                <div class="form-group">
+                    {{ form.FMC_FILM_CURVE.label(class="form-label") }}
+                    {{ form.FMC_FILM_CURVE(class="form-control") }}
+                    {% if form.FMC_FILM_CURVE.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.FMC_FILM_CURVE.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 色 -->
+            <div class="col-md-2">
+                <div class="form-group">
+                    {{ form.FMC_COLOR.label(class="form-label") }}
+                    {{ form.FMC_COLOR(class="form-control") }}
+                    {% if form.FMC_COLOR.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.FMC_COLOR.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 投入数 -->
+            <div class="col-md-2">
+                <div class="form-group">
+                    {{ form.FMC_INPUT_QTY.label(class="form-label") }}
+                    {{ form.FMC_INPUT_QTY(class="form-control", id="FMC_INPUT_QTY", value=(form.FMC_INPUT_QTY.data | int) if form.FMC_INPUT_QTY.data or 0) }}
+                    {% if form.FMC_INPUT_QTY.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.FMC_INPUT_QTY.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            
+        </div>
+
+        <div class="row">
+            <table class="table table-bordered cut-table">
+                <thead>
+                    <tr>
+                        <th colspan="9">カット</th>
+                    </tr>
+                    <tr>
+                        <th>ブツ</th>
+                        <th>シワ</th>
+                        <th>ウエーブ</th>
+                        <th>ミス</th>
+                        <th>サケ</th>
+                        <th>キズ</th>
+                        <th>その他</th>
+                        <th>良品数</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="number" class="form-control" id="FMC_CUT_FOREIGN" name="FMC_CUT_FOREIGN" value="{{ form.FMC_CUT_FOREIGN.data or 0 }}"></td>
+                        <td><input type="number" class="form-control" id="FMC_CUT_WRINKLE" name="FMC_CUT_WRINKLE" value="{{ form.FMC_CUT_WRINKLE.data or 0 }}"></td>
+                        <td><input type="number" class="form-control" id="FMC_CUT_WAVE" name="FMC_CUT_WAVE" value="{{ form.FMC_CUT_WAVE.data or 0 }}"></td>
+                        <td><input type="number" class="form-control" id="FMC_CUT_ERR" name="FMC_CUT_ERR" value="{{ form.FMC_CUT_ERR.data or 0 }}"></td>
+                        <td><input type="number" class="form-control" id="FMC_CUT_CRACK" name="FMC_CUT_CRACK" value="{{ form.FMC_CUT_CRACK.data or 0 }}"></td>
+                        <td><input type="number" class="form-control" id="FMC_CUT_SCRATCH" name="FMC_CUT_SCRATCH" value="{{ form.FMC_CUT_SCRATCH.data or 0 }}"></td>
+                        <td><input type="number" class="form-control" id="FMC_CUT_OTHERS" name="FMC_CUT_OTHERS" value="{{ form.FMC_CUT_OTHERS.data or 0 }}"></td>
+                        <td><input type="number" class="form-control" id="FMC_GOOD_QTY" name="FMC_GOOD_QTY" value="{{ form.FMC_GOOD_QTY.data or 0 }}" readonly></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="row">
+            <table class="table table-bordered wash-table">
+                <thead>
+                    <tr>
+                        <th colspan="9">洗浄</th>
+                    </tr>
+                    <tr>
+                        <th>シワ</th>
+                        <th>キズ</th>
+                        <th>イブツ</th>
+                        <th>アセトン</th>
+                        <th>ミス</th>
+                        <th>カットミス</th>
+                        <th>その他</th>
+                        <th>合格数</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="number" class="form-control" id="FMC_WASH_WRINKLE" name="FMC_WASH_WRINKLE" value="{{ form.FMC_WASH_WRINKLE.data or 0 }}"></td>
+                        <td><input type="number" class="form-control" id="FMC_WASH_SCRATCH" name="FMC_WASH_SCRATCH" value="{{ form.FMC_WASH_SCRATCH.data or 0 }}"></td>
+                        <td><input type="number" class="form-control" id="FMC_WASH_FOREIGN" name="FMC_WASH_FOREIGN" value="{{ form.FMC_WASH_FOREIGN.data or 0 }}"></td>
+                        <td><input type="number" class="form-control" id="FMC_WASH_ACETONE" name="FMC_WASH_ACETONE" value="{{ form.FMC_WASH_ACETONE.data or 0 }}"></td>
+                        <td><input type="number" class="form-control" id="FMC_WASH_ERR" name="FMC_WASH_ERR" value="{{ form.FMC_WASH_ERR.data or 0 }}"></td>
+                        <td><input type="number" class="form-control" id="FMC_WASH_CUT_ERR" name="FMC_WASH_CUT_ERR" value="{{ form.FMC_WASH_CUT_ERR.data or 0 }}"></td>
+                        <td><input type="number" class="form-control" id="FMC_WASH_OTHERS" name="FMC_WASH_OTHERS" value="{{ form.FMC_WASH_OTHERS.data or 0 }}"></td>
+                        <td><input type="number" class="form-control" id="FMC_PASS_QTY" name="FMC_PASS_QTY" value="{{ form.FMC_PASS_QTY.data or 0 }}" readonly></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-4">
+            {{ form.submit(class="btn btn-primary") }}
+            <a href="{{ url_for('main.fmc_dat_list') }}" class="btn btn-secondary">キャンセル</a>
+            {% if not is_create %}
+            <button type="button" class="btn btn-danger" onclick="confirmDelete()">削除</button>
+            {% endif %}
+        </div>
+    </form>
+</div>
+{% endblock %}
+{% block style %}
+<style>
+    .cut-table th {
+        background-color:#66CCCC;
+    }
+    .wash-table th {
+        background-color:#99CCFF;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 日付時刻フィールドの初期値設定
+    const dateTimeFields = document.querySelectorAll('input[type="datetime-local"]');
+    dateTimeFields.forEach(field => {
+        if (field.value) {
+            // データベースの日付時刻文字列をHTML datetime-local形式に変換
+            const date = new Date(field.value);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            field.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+    });
+
+    document.getElementById('FMC_INPUT_QTY').addEventListener('change', function() {calcQty();});
+    document.getElementById('FMC_CUT_FOREIGN').addEventListener('change', function() {calcQty();});
+    document.getElementById('FMC_CUT_WRINKLE').addEventListener('change', function() {calcQty();});
+    document.getElementById('FMC_CUT_WAVE').addEventListener('change', function() {calcQty();});
+    document.getElementById('FMC_CUT_ERR').addEventListener('change', function() {calcQty();});
+    document.getElementById('FMC_CUT_CRACK').addEventListener('change', function() {calcQty();});
+    document.getElementById('FMC_CUT_SCRATCH').addEventListener('change', function() {calcQty();});
+    document.getElementById('FMC_CUT_OTHERS').addEventListener('change', function() {calcQty();});
+    document.getElementById('FMC_WASH_WRINKLE').addEventListener('change', function() {calcQty();});
+    document.getElementById('FMC_WASH_SCRATCH').addEventListener('change', function() {calcQty();});
+    document.getElementById('FMC_WASH_FOREIGN').addEventListener('change', function() {calcQty();});
+    document.getElementById('FMC_WASH_ACETONE').addEventListener('change', function() {calcQty();});
+    document.getElementById('FMC_WASH_ERR').addEventListener('change', function() {calcQty();});
+    document.getElementById('FMC_WASH_CUT_ERR').addEventListener('change', function() {calcQty();});
+    document.getElementById('FMC_WASH_OTHERS').addEventListener('change', function() {calcQty();});
+    document.getElementById('FMC_INPUT_QTY').addEventListener('focus', function() {
+        if (this.value === '0') {
+            this.value = '';
+        }
+    });
+    document.getElementById('FMC_CUT_FOREIGN').addEventListener('focus', function() {
+        if (this.value === '0') {
+            this.value = '';
+        }
+    });
+    document.getElementById('FMC_CUT_WRINKLE').addEventListener('focus', function() {
+        if (this.value === '0') {
+            this.value = '';
+        }
+    });
+    document.getElementById('FMC_CUT_WAVE').addEventListener('focus', function() {
+        if (this.value === '0') {
+            this.value = '';
+        }
+    });
+    document.getElementById('FMC_CUT_ERR').addEventListener('focus', function() {
+        if (this.value === '0') {
+            this.value = '';
+        }
+    });
+    document.getElementById('FMC_CUT_CRACK').addEventListener('focus', function() {
+        if (this.value === '0') {
+            this.value = '';
+        }
+    });
+    document.getElementById('FMC_CUT_SCRATCH').addEventListener('focus', function() {
+        if (this.value === '0') {
+            this.value = '';
+        }
+    });
+    document.getElementById('FMC_CUT_OTHERS').addEventListener('focus', function() {
+        if (this.value === '0') {
+            this.value = '';
+        }
+    });
+    document.getElementById('FMC_WASH_WRINKLE').addEventListener('focus', function() {
+        if (this.value === '0') {
+            this.value = '';
+        }
+    });
+    document.getElementById('FMC_WASH_SCRATCH').addEventListener('focus', function() {
+        if (this.value === '0') {
+            this.value = '';
+        }
+    });
+    document.getElementById('FMC_WASH_FOREIGN').addEventListener('focus', function() {
+        if (this.value === '0') {
+            this.value = '';
+        }
+    });
+    document.getElementById('FMC_WASH_ACETONE').addEventListener('focus', function() {
+        if (this.value === '0') {
+            this.value = '';
+        }
+    });
+    document.getElementById('FMC_WASH_ERR').addEventListener('focus', function() {
+        if (this.value === '0') {
+            this.value = '';
+        }
+    });
+    document.getElementById('FMC_WASH_CUT_ERR').addEventListener('focus', function() {
+        if (this.value === '0') {
+            this.value = '';
+        }
+    });
+    document.getElementById('FMC_WASH_OTHERS').addEventListener('focus', function() {
+        if (this.value === '0') {
+            this.value = '';
+        }
+    });
+    document.getElementById('FMC_INPUT_QTY').addEventListener('blur', function() {
+        if (this.value === '') {
+            this.value = '0';
+        }
+    });
+    document.getElementById('FMC_CUT_FOREIGN').addEventListener('blur', function() {
+        if (this.value === '') {
+            this.value = '0';
+        }
+    });
+    document.getElementById('FMC_CUT_WRINKLE').addEventListener('blur', function() {
+        if (this.value === '') {
+            this.value = '0';
+        }
+    });
+    document.getElementById('FMC_CUT_WAVE').addEventListener('blur', function() {
+        if (this.value === '') {
+            this.value = '0';
+        }
+    });
+    document.getElementById('FMC_CUT_ERR').addEventListener('blur', function() {
+        if (this.value === '') {
+            this.value = '0';
+        }
+    });
+    document.getElementById('FMC_CUT_CRACK').addEventListener('blur', function() {
+        if (this.value === '') {
+            this.value = '0';
+        }
+    });
+    document.getElementById('FMC_CUT_SCRATCH').addEventListener('blur', function() {
+        if (this.value === '') {
+            this.value = '0';
+        }
+    });
+    document.getElementById('FMC_CUT_OTHERS').addEventListener('blur', function() {
+        if (this.value === '') {
+            this.value = '0';
+        }
+    });
+    document.getElementById('FMC_WASH_WRINKLE').addEventListener('blur', function() {
+        if (this.value === '') {
+            this.value = '0';
+        }
+    });
+    document.getElementById('FMC_WASH_SCRATCH').addEventListener('blur', function() {
+        if (this.value === '') {
+            this.value = '0';
+        }
+    });
+    document.getElementById('FMC_WASH_FOREIGN').addEventListener('blur', function() {
+        if (this.value === '') {
+            this.value = '0';
+        }
+    });
+    document.getElementById('FMC_WASH_ACETONE').addEventListener('blur', function() {
+        if (this.value === '') {
+            this.value = '0';
+        }
+    });
+    document.getElementById('FMC_WASH_ERR').addEventListener('blur', function() {
+        if (this.value === '') {
+            this.value = '0';
+        }
+    });
+    document.getElementById('FMC_WASH_CUT_ERR').addEventListener('blur', function() {
+        if (this.value === '') {
+            this.value = '0';
+        }
+    });
+    document.getElementById('FMC_WASH_OTHERS').addEventListener('blur', function() {
+        if (this.value === '') {
+            this.value = '0';
+        }
+    });
+
+});
+    function calcQty() {
+        const inputQtyvalue = parseInt(document.getElementById('FMC_INPUT_QTY').value);
+        const cutForeignvalue = parseInt(document.getElementById('FMC_CUT_FOREIGN').value);
+        const cutWrinklevalue = parseInt(document.getElementById('FMC_CUT_WRINKLE').value);
+        const cutWavevalue = parseInt(document.getElementById('FMC_CUT_WAVE').value);
+        const cutErrvalue = parseInt(document.getElementById('FMC_CUT_ERR').value);
+        const cutCrackvalue = parseInt(document.getElementById('FMC_CUT_CRACK').value);
+        const cutScratchvalue = parseInt(document.getElementById('FMC_CUT_SCRATCH').value);
+        const cutOthersvalue = parseInt(document.getElementById('FMC_CUT_OTHERS').value);
+        const washWrinklevalue = parseInt(document.getElementById('FMC_WASH_WRINKLE').value);
+        const washScratchvalue = parseInt(document.getElementById('FMC_WASH_SCRATCH').value);
+        const washForeignvalue = parseInt(document.getElementById('FMC_WASH_FOREIGN').value);
+        const washAcetonevalue = parseInt(document.getElementById('FMC_WASH_ACETONE').value);
+        const washErrvalue = parseInt(document.getElementById('FMC_WASH_ERR').value);
+        const washCutErrvalue = parseInt(document.getElementById('FMC_WASH_CUT_ERR').value);
+        const washOthersvalue = parseInt(document.getElementById('FMC_WASH_OTHERS').value);
+        const goodQtyValue = inputQtyvalue - (cutForeignvalue 
+                                            + cutWrinklevalue 
+                                            + cutWavevalue 
+                                            + cutErrvalue 
+                                            + cutCrackvalue 
+                                            + cutScratchvalue 
+                                            + cutOthersvalue);
+        document.getElementById('FMC_GOOD_QTY').value = goodQtyValue;
+        const passQtyValue = goodQtyValue - (washWrinklevalue
+                                            + washScratchvalue 
+                                            + washForeignvalue 
+                                            + washAcetonevalue 
+                                            + washErrvalue 
+                                            + washCutErrvalue 
+                                            + washOthersvalue);
+        document.getElementById('FMC_PASS_QTY').value = passQtyValue;
+    }
+
+    function confirmDelete() {
+        if (confirm('このデータを削除してもよろしいですか？\n削除後は元に戻すことができません。')) {
+            // 削除用のフォームを作成して送信
+            const deleteForm = document.createElement('form');
+            deleteForm.method = 'POST';
+            deleteForm.action = window.location.href;
+            
+            // CSRFトークンを追加
+            const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = csrfToken;
+            deleteForm.appendChild(csrfInput);
+            
+            // 削除アクションを示す隠しフィールドを追加
+            const deleteAction = document.createElement('input');
+            deleteAction.type = 'hidden';
+            deleteAction.name = 'action';
+            deleteAction.value = 'delete';
+            deleteForm.appendChild(deleteAction);
+            
+            document.body.appendChild(deleteForm);
+            deleteForm.submit();
+        }
+    }
+</script>
+{% endblock %} 

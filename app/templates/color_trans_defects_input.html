@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>不良データ{{ '修正' if fng_dat else '新規登録' }}</h2>
+    <form method="POST" class="mt-4">
+        <input type="hidden" name="lot_no" value="{{ lot_no }}">
+        <input type="hidden" name="ng_id" value="{{ ng_id }}">
+        
+        <div class="mb-3">
+            <label for="lotNo" class="form-label">ロットNo</label>
+            <input type="text" class="form-control" id="lotNo" value="{{ lot_no }}" readonly>
+        </div>
+        
+        <div class="mb-3">
+            <label for="ngId" class="form-label">不良項目</label>
+            <input type="text" class="form-control" id="ngId" value="{{ 'カラー不良' if ng_id == '1' else '透過率不良' }}" readonly>
+        </div>
+        
+        <div class="mb-3">
+            <label for="insQty" class="form-label">検査数</label>
+            <input type="number" class="form-control" id="insQty" name="ins_qty" value="{{ fng_dat.FNG_INS_QTY if fng_dat else '' }}" required>
+        </div>
+        
+        <div class="mb-3">
+            <label for="ngQty" class="form-label">不良数</label>
+            <input type="number" class="form-control" id="ngQty" name="ng_qty" value="{{ fng_dat.FNG_NG_QTY if fng_dat else '' }}" required>
+        </div>
+        
+        <div class="mb-3">
+            <label for="biko" class="form-label">備考</label>
+            <textarea class="form-control" id="biko" name="biko" rows="3">{{ fng_dat.FNG_BIKO if fng_dat else '' }}</textarea>
+        </div>
+        
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">保存</button>
+            <a href="{{ url_for('ishida1.color_trans_defects') }}" class="btn btn-secondary">戻る</a>
+        </div>
+    </form>
+</div>
+{% endblock %} 

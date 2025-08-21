@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>特記事項一覧</h2>
+    <form method="get" class="form-inline mb-3">
+        <input type="text" name="lot_no" class="form-control mr-2" placeholder="ロットNo." value="{{ lot_no }}">
+        <input type="date" name="start_date" class="form-control mr-2" value="{{ start_date }}">
+        <input type="date" name="end_date" class="form-control mr-2" value="{{ end_date }}">
+        <select name="user_id" class="form-control mr-2">
+            <option value="">入力者</option>
+            {% for w in workers %}
+                <option value="{{ w.WRK_ID }}" {% if user_id == w.WRK_ID|string %}selected{% endif %}>{{ w.WRK_NM }}</option>
+            {% endfor %}
+        </select>
+        <input type="text" name="title" class="form-control mr-2" placeholder="項目名" value="{{ title }}">
+        <button type="submit" class="btn btn-primary">検索</button>
+        <a href="{{ url_for('main.note_dat_input') }}" class="btn btn-success ml-2">新規登録</a>
+    </form>
+    <table class="table table-bordered table-hover">
+        <thead>
+            <tr>
+                <th>操作</th>
+                <th>ID</th>
+                <th>ロットNo.</th>
+                <th>入力日</th>
+                <th>入力者</th>
+                <th>項目名</th>
+                <th>内容</th>
+                <th>返信</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for n in notes %}
+            <tr>
+                <td>
+                    <a href="{{ url_for('main.note_dat_detail', note_id=n.NOTE_ID) }}" class="btn btn-info btn-sm">詳細</a>
+                    <a href="{{ url_for('main.note_dat_edit', note_id=n.NOTE_ID) }}" class="btn btn-warning btn-sm">編集</a>
+                    <form action="{{ url_for('main.note_dat_delete', note_id=n.NOTE_ID) }}" method="post" style="display:inline;" onsubmit="return confirm('本当に削除しますか？');">
+                        <button type="submit" class="btn btn-danger btn-sm">削除</button>
+                    </form>
+                </td>
+                <td>{{ n.NOTE_ID }}</td>
+                <td>{{ n.NOTE_LOT_NO }}</td>
+                <td>{{ n.NOTE_DATE.strftime('%Y-%m-%d') if n.NOTE_DATE else '' }}</td>
+                <td>
+                    {% if n.worker and n.worker.WRK_NM %}
+                        {{ n.worker.WRK_NM }}
+                    {% elif worker_dict and n.NOTE_USER and n.NOTE_USER|string in worker_dict %}
+                        {{ worker_dict[n.NOTE_USER|string] }}
+                    {% else %}
+                        {{ n.NOTE_USER }}
+                    {% endif %}
+                </td>
+                <td>{{ n.NOTE_TITLE }}</td>
+                <td>{{ n.NOTE_CNTNT }}</td>
+                <td>
+                    {% if n.has_replies %}
+                        <span class="badge badge-success">{{ n.reply_count }}件</span>
+                    {% else %}
+                        <span class="badge badge-secondary">なし</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="8">データがありません</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <!-- ページャー -->
+    <nav aria-label="ページナビゲーション">
+      <ul class="pagination justify-content-center">
+        {% if has_prev %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ prev_num }}&lot_no={{ lot_no }}&start_date={{ start_date }}&end_date={{ end_date }}&user_id={{ user_id }}&title={{ title }}">前へ</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">前へ</span></li>
+        {% endif %}
+        {% for p in range(1, pages+1) %}
+          {% if p == page %}
+            <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+          {% else %}
+            <li class="page-item"><a class="page-link" href="?page={{ p }}&lot_no={{ lot_no }}&start_date={{ start_date }}&end_date={{ end_date }}&user_id={{ user_id }}&title={{ title }}">{{ p }}</a></li>
+          {% endif %}
+        {% endfor %}
+        {% if has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?page={{ next_num }}&lot_no={{ lot_no }}&start_date={{ start_date }}&end_date={{ end_date }}&user_id={{ user_id }}&title={{ title }}">次へ</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">次へ</span></li>
+        {% endif %}
+      </ul>
+      <div class="text-center">全{{ total }}件</div>
+    </nav>
+</div>
+{% endblock %} 

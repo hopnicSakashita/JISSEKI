@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-1">
+    <h2 class="mb-1">モノマー種別良品率分析（検査日ベース）</h2>
+    
+    <!-- 検索フォーム -->
+    <div class="card mb-2">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>検索条件</span>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="toggleSearch">
+                <span id="toggleIcon">▼</span>
+            </button>
+        </div>
+        <div class="card-body" id="searchFormBody">
+            <form id="searchForm" method="POST">
+                <div class="row align-items-end">
+                    <div class="col-md-4">
+                        <label for="start_date" class="form-label">検査日（開始）</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="end_date" class="form-label">検査日（終了）</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date" required>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary">検索</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 分析結果テーブル -->
+    <div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
+        <table class="table table-bordered table-hover results-table" id="resultTable">
+            <thead class="table-primary sticky-top" style="position: sticky; top: 0; z-index: 10; background-color: #cfe2ff;">
+                <tr>
+                    <th class="highlight-column">モノマー種</th>
+                    <th>目標値</th>
+                    <th class="highlight-column">良品率</th>
+                    <th>差分</th>
+                    <th class="highlight-column">注入数</th>
+                    <th>良品数</th>
+                    <th>不良数</th>
+                    <th class="highlight-column">上位不良項目</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- JavaScriptでデータを動的に追加 -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 結果表示用のスタイル -->
+<style>
+    .results-table {
+        font-size: 1.3em;
+    }
+    .positive-diff {
+        color: #198754;
+        font-weight: bold;
+    }
+    .negative-diff {
+        color: #dc3545;
+        font-weight: bold;
+    }
+    .defect-item {
+        margin-bottom: 5px;
+    }
+    .defect-rate {
+        font-size: 1em;
+        color: #6c757d;
+    }
+    .highlight-column {
+        background-color: #e3f2fd !important;
+    }
+    .highlight-column td {
+        background-color: #e3f2fd !important;
+    }
+    
+    /* 印刷用スタイル */
+    @media print {
+        .table-responsive {
+            max-height: none !important;
+            overflow: visible !important;
+        }
+        .sticky-top {
+            position: static !important;
+        }
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+        .card-header {
+            background-color: #f8f9fa !important;
+            border-bottom: 1px solid #dee2e6 !important;
+        }
+        .btn {
+            display: none !important;
+        }
+        .highlight-column {
+            background-color: #e3f2fd !important;
+            -webkit-print-color-adjust: exact !important;
+            color-adjust: exact !important;
+        }
+        .table-primary {
+            background-color: #cfe2ff !important;
+            -webkit-print-color-adjust: exact !important;
+            color-adjust: exact !important;
+        }
+        .positive-diff {
+            color: #198754 !important;
+            -webkit-print-color-adjust: exact !important;
+            color-adjust: exact !important;
+        }
+        .negative-diff {
+            color: #dc3545 !important;
+            -webkit-print-color-adjust: exact !important;
+            color-adjust: exact !important;
+        }
+    }
+</style>
+
+<!-- JavaScriptコード -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleBtn = document.getElementById('toggleSearch');
+    const searchFormBody = document.getElementById('searchFormBody');
+    const toggleIcon = document.getElementById('toggleIcon');
+    
+    // ローカルストレージから状態を復元
+    const isCollapsed = localStorage.getItem('searchFormCollapsed') === 'true';
+    if (isCollapsed) {
+        searchFormBody.style.display = 'none';
+        toggleIcon.textContent = '▼';
+    }
+
+    toggleBtn.addEventListener('click', function() {
+        if (searchFormBody.style.display === 'none') {
+            searchFormBody.style.display = 'block';
+            toggleIcon.textContent = '▼';
+            localStorage.setItem('searchFormCollapsed', 'false');
+        } else {
+            searchFormBody.style.display = 'none';
+            toggleIcon.textContent = '▲';
+            localStorage.setItem('searchFormCollapsed', 'true');
+        }
+    });
+
+    // 昨日の日付をデフォルトとして設定
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    document.getElementById('start_date').value = formatDateForInput(yesterday);
+    document.getElementById('end_date').value = formatDateForInput(yesterday);
+    
+    // フォーム送信時の処理
+    document.getElementById('searchForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        fetchData();
+    });
+    
+    // 初期データの取得
+    fetchData();
+
+});
+
+function fetchData() {
+    const startDate = document.getElementById('start_date').value;
+    const endDate = document.getElementById('end_date').value;
+    
+    fetch(`/api/mono_syu_inspection?start_date=${startDate}&end_date=${endDate}`)
+        .then(response => response.json())
+        .then(data => {
+            updateTable(data);
+        })
+        .catch(error => {
+            console.error('データ取得エラー:', error);
+            alert('データの取得に失敗しました。');
+        });
+}
+
+function updateTable(data) {
+    const tbody = document.querySelector('#resultTable tbody');
+    tbody.innerHTML = '';
+    
+    data.forEach(item => {
+        const row = document.createElement('tr');
+        
+        // 差分の色分け用クラス
+        const diffClass = item.difference >= 0 ? 'positive-diff' : 'negative-diff';
+        const diffSign = item.difference >= 0 ? '+' : '';
+        
+        // 上位不良項目の整形
+        const defectItems = item.top_defects.map(defect => `
+            ${defect.rate > 3 ? `
+            <div class="defect-item">
+                ${defect.name}
+                <span class="defect-rate">
+                     ${defect.rate.toFixed(1)}%
+                </span>
+            </div>
+            ` : ''}
+        `).join('');
+        
+        row.innerHTML = `
+            <td class="highlight-column">${item.mono_name}</td>
+            <td class="text-end">${item.target.toFixed(1)}%</td>
+            <td class="text-end highlight-column">${item.good_rate.toFixed(1)}%</td>
+            <td class="text-end ${diffClass}">${diffSign}${item.difference.toFixed(1)}%</td>
+            <td class="text-end highlight-column">${item.total_shots.toLocaleString()}</td>
+            <td class="text-end">${item.good_count.toLocaleString()}</td>
+            <td class="text-end">${item.defect_count.toLocaleString()}</td>
+            <td class="highlight-column">${defectItems}</td>
+        `;
+        document.getElementById('csv-import-time').textContent = '実績CSVインポート時間: ' + item.csv_import_time;
+        tbody.appendChild(row);
+    });
+}
+</script>
+{% endblock %} 

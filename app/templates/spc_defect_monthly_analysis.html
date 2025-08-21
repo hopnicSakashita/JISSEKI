@@ -1,0 +1,722 @@
+{% extends 'base.html' %}
+
+{% block style %}
+<style>
+    .chart-container {
+        position: relative;
+        height: 600px;
+        width: 100%;
+        margin-bottom: 30px;
+    }
+    .filters {
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    .total-row {
+        background-color: #e9ecef;
+        font-weight: bold;
+    }
+    .defect-summary {
+        margin-top: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    .defect-summary h3 {
+        margin-bottom: 15px;
+    }
+    .defect-summary table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .defect-summary th, .defect-summary td {
+        padding: 8px;
+        text-align: right;
+        border: 1px solid #ddd;
+    }
+    .defect-summary th {
+        background-color: #f2f2f2;
+        text-align: center;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    .period-summary {
+        margin-top: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    .period-summary h3 {
+        margin-bottom: 15px;
+    }
+    .period-summary table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .period-summary th, .period-summary td {
+        padding: 8px;
+        text-align: right;
+        border: 1px solid #ddd;
+    }
+    .period-summary th {
+        background-color: #f2f2f2;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>スピンコート不良詳細分析（月別）</h1>
+<div class="filters">
+    <h3>フィルター</h3>
+    <div class="row">
+        <div class="col-md-6">
+            <label for="date-from">開始日:</label>
+            <input type="date" id="date-from" class="form-control">
+            <button id="this-year-button" class="btn btn-info m-1">今年</button>
+            <button id="last-year-button" class="btn btn-info m-1">昨年</button>
+            <button id="this-month-button" class="btn btn-info m-1">今月</button>
+            <button id="last-month-button" class="btn btn-info m-1">前月</button>
+        </div>
+        <div class="col-md-6">
+            <label for="date-to">終了日:</label>
+            <input type="date" id="date-to" class="form-control">
+        </div>
+    </div>
+    <div class="row mt-3">
+        <div class="col-md-6">
+            <label for="ct_type">種類:</label>
+            <select id="ct_type" class="form-control">
+                <option value="">すべて</option>
+                <option value="1">自社</option>
+                <option value="2">他社</option>
+                <option value="3">NEO</option>
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label for="color">色:</label>
+            <select id="color" class="form-control">
+                <option value="">すべて</option>
+                <option value="1">51B</option>
+                <option value="2">20B</option>
+                <option value="3">GRAY</option>
+                <option value="4">BROWN</option>
+                <option value="5">L5GR</option>
+                <option value="6">L5BR</option>
+                <option value="7">BLUE</option>
+                <option value="8">NEO L5GR</option>
+            </select>
+        </div>
+    </div>
+    
+    <div class="row mt-3">
+        <div class="col-md-12">
+            <button id="apply-filters" class="btn btn-primary">適用</button>
+            <button id="reset-filters" class="btn btn-secondary">リセット</button>
+        </div>
+    </div>
+</div>
+<div class="chart-container">
+    <canvas id="pre-defect-chart" style="height:600px;"></canvas>
+</div>
+<div class="chart-container">
+    <canvas id="pst-defect-chart" style="height:600px;"></canvas>
+</div>
+<div class="chart-container">
+    <canvas id="period-total-chart" style="height:600px;"></canvas>
+</div>
+<div class="defect-summary">
+    <h3>硬化前不良詳細データ</h3>
+    <div class="table-responsive">
+        <table class="table table-bordered" id="pre-defect-summary-table">
+            <thead class="thead-dark">
+                <tr>
+                    <th>不良項目</th>
+                    <!-- 月はJavaScriptで動的に追加 -->
+                </tr>
+            </thead>
+            <tbody>
+                <!-- データはJavaScriptで動的に生成 -->
+            </tbody>
+        </table>
+    </div>
+</div>
+<div class="defect-summary">
+    <h3>硬化後不良詳細データ</h3>
+    <div class="table-responsive">
+        <table class="table table-bordered" id="pst-defect-summary-table">
+            <thead class="thead-dark">
+                <tr>
+                    <th>不良項目</th>
+                    <!-- 月はJavaScriptで動的に追加 -->
+                </tr>
+            </thead>
+            <tbody>
+                <!-- データはJavaScriptで動的に生成 -->
+            </tbody>
+        </table>
+    </div>
+</div>
+<div class="period-summary">
+    <h3>期間合計</h3>
+    <div class="table-responsive">
+        <table class="table table-bordered" id="period-summary-table">
+            <thead class="thead-dark">
+                <tr>
+                    <th>検査種別</th>
+                    <th>不良項目</th>
+                    <th>不良数</th>
+                    <th>不良率</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- データはJavaScriptで動的に生成 -->
+            </tbody>
+        </table>
+    </div>
+</div>
+<div id="csv-import-time" class="mt-2 text-muted"></div>
+{% if error %}
+  <div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0 "></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let preDefectChart = null;
+        let pstDefectChart = null;
+        let periodTotalChart = null;
+        setupDateButtons();
+        document.getElementById('apply-filters').addEventListener('click', function() {
+            fetchDefectData();
+        });
+        document.getElementById('reset-filters').addEventListener('click', function() {
+            document.getElementById('date-from').value = '';
+            document.getElementById('date-to').value = '';
+            document.getElementById('ct_type').value = '';
+            document.getElementById('color').value = '';
+            fetchDefectData();
+        });
+        function setupDateButtons() {
+            // 今年ボタン
+            document.getElementById('this-year-button').addEventListener('click', function(e) {
+                e.preventDefault();
+                const now = new Date();
+                const startOfYear = new Date(now.getFullYear(), 0, 1);
+                const endOfYear = new Date(now.getFullYear() + 1, 0, 0);
+                document.getElementById('date-from').value = formatDateForInput(startOfYear);
+                document.getElementById('date-to').value = formatDateForInput(endOfYear);
+            });
+            
+            // 昨年ボタン
+            document.getElementById('last-year-button').addEventListener('click', function(e) {
+                e.preventDefault();
+                const now = new Date();
+                const startOfLastYear = new Date(now.getFullYear() - 1, 0, 1);
+                const endOfLastYear = new Date(now.getFullYear(), 0, 0);
+                document.getElementById('date-from').value = formatDateForInput(startOfLastYear);
+                document.getElementById('date-to').value = formatDateForInput(endOfLastYear);
+            });
+            
+            // 今月ボタン
+            document.getElementById('this-month-button').addEventListener('click', function(e) {
+                e.preventDefault();
+                const now = new Date();
+                const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+                const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                document.getElementById('date-from').value = formatDateForInput(firstDay);
+                document.getElementById('date-to').value = formatDateForInput(lastDay);
+            });
+            
+            // 先月ボタン
+            document.getElementById('last-month-button').addEventListener('click', function(e) {
+                e.preventDefault();
+                const now = new Date();
+                const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1);
+                const firstDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 1);
+                const lastDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0);
+                document.getElementById('date-from').value = formatDateForInput(firstDay);
+                document.getElementById('date-to').value = formatDateForInput(lastDay);
+            });
+        }
+        
+        function updateDefectSummary(data, type) {
+            const tableId = type === 'pre' ? 'pre-defect-summary-table' : 'pst-defect-summary-table';
+            const defectData = type === 'pre' ? data.pre_defect_data : data.pst_defect_data;
+            
+            const tableBody = document.getElementById(tableId).getElementsByTagName('tbody')[0];
+            tableBody.innerHTML = '';
+            const tableHeader = document.getElementById(tableId).getElementsByTagName('thead')[0].getElementsByTagName('tr')[0];
+            while (tableHeader.childElementCount > 1) {
+                tableHeader.removeChild(tableHeader.lastChild);
+            }
+            
+            data.months.forEach(month => {
+                const th = document.createElement('th');
+                th.textContent = month;
+                tableHeader.appendChild(th);
+            });
+            
+            Object.entries(data.defect_labels).forEach(([defect_type, label]) => {
+                // 硬化前/硬化後の項目を分ける
+                const isPreDefect = defect_type.includes('PRE');
+                if ((type === 'pre' && !isPreDefect) || (type === 'pst' && isPreDefect)) {
+                    return;
+                }
+                
+                let hasData = false;
+                data.months.forEach(month => {
+                    if (defectData[month] && defectData[month][defect_type] && defectData[month][defect_type].rate > 0) {
+                        hasData = true;
+                    }
+                });
+                if (!hasData) return;
+                
+                const row = document.createElement('tr');
+                const typeCell = document.createElement('td');
+                typeCell.textContent = label;
+                row.appendChild(typeCell);
+                
+                data.months.forEach(month => {
+                    const cell = document.createElement('td');
+                    if (defectData[month] && defectData[month][defect_type]) {
+                        const rate = defectData[month][defect_type].rate;
+                        cell.textContent = rate < 0.01 ? '0.00' : rate.toFixed(2);
+                        cell.textContent += '%';
+                    } else {
+                        cell.textContent = '-';
+                    }
+                    row.appendChild(cell);
+                });
+                tableBody.appendChild(row);
+            });
+        }
+        
+        function updatePeriodSummary(data) {
+            const tableBody = document.getElementById('period-summary-table').getElementsByTagName('tbody')[0];
+            tableBody.innerHTML = '';
+
+            let totalPreDefects = 0;
+            let totalPstDefects = 0;
+            let totalSheets = 0;
+            let totalPreGood = 0;
+
+            // 期間合計の計算
+            data.months.forEach(month => {
+                if (data.total_data[month]) {
+                    totalSheets += data.total_data[month].total_sheets;
+                    totalPreGood += data.total_data[month].total_pre_good;
+                }
+            });
+
+            // 硬化前不良項目の合計を計算
+            Object.entries(data.defect_labels).forEach(([defect_type, label]) => {
+                const isPreDefect = defect_type.includes('PRE');
+                if (!isPreDefect) return;
+                
+                let defectTotal = 0;
+                data.months.forEach(month => {
+                    if (data.pre_defect_data[month] && data.pre_defect_data[month][defect_type]) {
+                        defectTotal += data.pre_defect_data[month][defect_type].count;
+                    }
+                });
+
+                if (defectTotal > 0) {
+                    const row = document.createElement('tr');
+                    
+                    const typeCell = document.createElement('td');
+                    typeCell.textContent = '硬化前';
+                    row.appendChild(typeCell);
+                    
+                    const labelCell = document.createElement('td');
+                    labelCell.textContent = label;
+                    row.appendChild(labelCell);
+
+                    const countCell = document.createElement('td');
+                    countCell.textContent = Math.round(defectTotal);
+                    row.appendChild(countCell);
+
+                    const rateCell = document.createElement('td');
+                    const rate = totalSheets > 0 ? (defectTotal / totalSheets * 100) : 0;
+                    rateCell.textContent = (rate < 0.01 ? '0.00' : rate.toFixed(2)) + '%';
+                    row.appendChild(rateCell);
+
+                    tableBody.appendChild(row);
+                    totalPreDefects += defectTotal;
+                }
+            });
+
+            // 硬化後不良項目の合計を計算
+            Object.entries(data.defect_labels).forEach(([defect_type, label]) => {
+                const isPreDefect = defect_type.includes('PRE');
+                if (isPreDefect) return;
+                
+                let defectTotal = 0;
+                data.months.forEach(month => {
+                    if (data.pst_defect_data[month] && data.pst_defect_data[month][defect_type]) {
+                        defectTotal += data.pst_defect_data[month][defect_type].count;
+                    }
+                });
+
+                if (defectTotal > 0) {
+                    const row = document.createElement('tr');
+                    
+                    const typeCell = document.createElement('td');
+                    typeCell.textContent = '硬化後';
+                    row.appendChild(typeCell);
+                    
+                    const labelCell = document.createElement('td');
+                    labelCell.textContent = label;
+                    row.appendChild(labelCell);
+
+                    const countCell = document.createElement('td');
+                    countCell.textContent = Math.round(defectTotal);
+                    row.appendChild(countCell);
+
+                    const rateCell = document.createElement('td');
+                    const rate = totalPreGood > 0 ? (defectTotal / totalPreGood * 100) : 0;
+                    rateCell.textContent = (rate < 0.01 ? '0.00' : rate.toFixed(2)) + '%';
+                    row.appendChild(rateCell);
+
+                    tableBody.appendChild(row);
+                    totalPstDefects += defectTotal;
+                }
+            });
+
+            // 合計行の追加（硬化前）
+            const preTotal = document.createElement('tr');
+            preTotal.classList.add('total-row');
+            
+            const preTotalTypeCell = document.createElement('td');
+            preTotalTypeCell.textContent = '硬化前';
+            preTotal.appendChild(preTotalTypeCell);
+
+            const preTotalLabelCell = document.createElement('td');
+            preTotalLabelCell.textContent = '合計';
+            preTotal.appendChild(preTotalLabelCell);
+
+            const preTotalCountCell = document.createElement('td');
+            preTotalCountCell.textContent = Math.round(totalPreDefects);
+            preTotal.appendChild(preTotalCountCell);
+
+            const preTotalRateCell = document.createElement('td');
+            const preTotalRate = totalSheets > 0 ? (totalPreDefects / totalSheets * 100) : 0;
+            preTotalRateCell.textContent = (preTotalRate < 0.01 ? '0.00' : preTotalRate.toFixed(2)) + '%';
+            preTotal.appendChild(preTotalRateCell);
+
+            tableBody.appendChild(preTotal);
+
+            // 合計行の追加（硬化後）
+            const pstTotal = document.createElement('tr');
+            pstTotal.classList.add('total-row');
+            
+            const pstTotalTypeCell = document.createElement('td');
+            pstTotalTypeCell.textContent = '硬化後';
+            pstTotal.appendChild(pstTotalTypeCell);
+
+            const pstTotalLabelCell = document.createElement('td');
+            pstTotalLabelCell.textContent = '合計';
+            pstTotal.appendChild(pstTotalLabelCell);
+
+            const pstTotalCountCell = document.createElement('td');
+            pstTotalCountCell.textContent = Math.round(totalPstDefects);
+            pstTotal.appendChild(pstTotalCountCell);
+
+            const pstTotalRateCell = document.createElement('td');
+            const pstTotalRate = totalPreGood > 0 ? (totalPstDefects / totalPreGood * 100) : 0;
+            pstTotalRateCell.textContent = (pstTotalRate < 0.01 ? '0.00' : pstTotalRate.toFixed(2)) + '%';
+            pstTotal.appendChild(pstTotalRateCell);
+
+            tableBody.appendChild(pstTotal);
+        }
+        
+        function updateChart(data, type) {
+            const canvasId = type === 'pre' ? 'pre-defect-chart' : 'pst-defect-chart';
+            const chartTitle = type === 'pre' ? '月別硬化前不良項目推移' : '月別硬化後不良項目推移';
+            const defectData = type === 'pre' ? data.pre_defect_data : data.pst_defect_data;
+            
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (type === 'pre' && preDefectChart) {
+                preDefectChart.destroy();
+            } else if (type === 'pst' && pstDefectChart) {
+                pstDefectChart.destroy();
+            }
+
+            // 不良タイプと色のマッピングを作成
+            const colorMap = {};
+            let colorIndex = 0;
+            Object.keys(data.defect_labels).forEach((defect_type) => {
+                const isPreDefect = defect_type.includes('PRE');
+                if ((type === 'pre' && isPreDefect) || (type === 'pst' && !isPreDefect)) {
+                    colorMap[defect_type] = `hsl(${(colorIndex*30)%360},70%,70%)`;
+                    colorIndex++;
+                }
+            });
+
+            const validDefectTypes = [];
+            Object.keys(data.defect_labels).forEach(defect_type => {
+                const isPreDefect = defect_type.includes('PRE');
+                if ((type === 'pre' && !isPreDefect) || (type === 'pst' && isPreDefect)) {
+                    return;
+                }
+                
+                let hasData = false;
+                data.months.forEach(month => {
+                    if (defectData[month] && defectData[month][defect_type] && defectData[month][defect_type].rate > 0) {
+                        hasData = true;
+                    }
+                });
+                if (hasData) {
+                    validDefectTypes.push(defect_type);
+                }
+            });
+
+            const datasets = [];
+            validDefectTypes.forEach(defect_type => {
+                datasets.push({
+                    label: data.defect_labels[defect_type],
+                    data: data.months.map(month => {
+                        if (defectData[month] && defectData[month][defect_type]) {
+                            return defectData[month][defect_type].rate;
+                        }
+                        return 0;
+                    }),
+                    backgroundColor: colorMap[defect_type],
+                });
+            });
+
+            const chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.months,
+                    datasets: datasets
+                },
+                plugins: [ChartDataLabels],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: chartTitle,
+                            font: { size: 18 }
+                        },
+                        legend: { position: 'right' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) label += ': ';
+                                    if (context.parsed.y !== null) {
+                                        const rate = context.parsed.y;
+                                        label += (rate < 0.01 ? '0.00' : rate.toFixed(2)) + '%';
+                                    }
+                                    return label;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'start',
+                            font: {
+                                size: 16, // 文字サイズを大きく設定
+                                weight: 'bold',
+                                family: 'Meiryo',
+                                color: '#ffffff'
+                            },
+                            formatter: function(value, context) {
+                                return (value < 2 ? '' : (value.toFixed(2) + '%' + '\n' + context.dataset.label));
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            title: { display: true, text: '月' },
+                            ticks: { font: { size: 16 } }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            stacked: true,
+                            title: { display: true, text: '不良率 (%)' },
+                            ticks: { font: { size: 16 } }
+                        }
+                    }
+                }
+            });
+            
+            if (type === 'pre') {
+                preDefectChart = chart;
+            } else {
+                pstDefectChart = chart;
+            }
+        }
+        
+        function updatePeriodTotalChart(data) {
+            const ctx = document.getElementById('period-total-chart').getContext('2d');
+            if (periodTotalChart) {
+                periodTotalChart.destroy();
+            }
+
+            let totalSheets = 0;
+            let totalPreGood = 0;
+            data.months.forEach(month => {
+                if (data.total_data[month]) {
+                    totalSheets += data.total_data[month].total_sheets;
+                    totalPreGood += data.total_data[month].total_pre_good;
+                }
+            });
+
+            // 不良データの計算と格納
+            const defectItems = [];
+            const colorMap = {};
+            let colorIndex = 0;
+            Object.keys(data.defect_labels).forEach((defect_type) => {
+                colorMap[defect_type] = `hsl(${(colorIndex*30)%360},70%,70%)`;
+                colorIndex++;
+            });
+
+            // 硬化前不良項目
+            Object.entries(data.defect_labels).forEach(([defect_type, label]) => {
+                const isPreDefect = defect_type.includes('PRE');
+                if (!isPreDefect) return;
+                
+                let defectTotal = 0;
+                data.months.forEach(month => {
+                    if (data.pre_defect_data[month] && data.pre_defect_data[month][defect_type]) {
+                        defectTotal += data.pre_defect_data[month][defect_type].count;
+                    }
+                });
+
+                if (defectTotal > 0) {
+                    const rate = totalSheets > 0 ? (defectTotal / totalSheets * 100) : 0;
+                    defectItems.push({
+                        defect_type: defect_type,
+                        label: label,
+                        rate: rate,
+                        color: colorMap[defect_type]
+                    });
+                }
+            });
+
+            // 硬化後不良項目
+            Object.entries(data.defect_labels).forEach(([defect_type, label]) => {
+                const isPreDefect = defect_type.includes('PRE');
+                if (isPreDefect) return;
+                
+                let defectTotal = 0;
+                data.months.forEach(month => {
+                    if (data.pst_defect_data[month] && data.pst_defect_data[month][defect_type]) {
+                        defectTotal += data.pst_defect_data[month][defect_type].count;
+                    }
+                });
+
+                if (defectTotal > 0) {
+                    const rate = totalPreGood > 0 ? (defectTotal / totalPreGood * 100) : 0;
+                    defectItems.push({
+                        defect_type: defect_type,
+                        label: label,
+                        rate: rate,
+                        color: colorMap[defect_type]
+                    });
+                }
+            });
+
+            // 不良率で降順ソート
+            defectItems.sort((a, b) => b.rate - a.rate);
+
+            periodTotalChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: defectItems.map(item => item.label),
+                    datasets: [{
+                        label: '期間合計不良率',
+                        data: defectItems.map(item => item.rate),
+                        backgroundColor: defectItems.map(item => item.color),
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '期間合計不良率',
+                            font: { size: 18 }
+                        },
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const rate = context.parsed.y;
+                                    return `不良率: ${rate < 0.01 ? '0.00' : rate.toFixed(2)}%`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { 
+                                display: true, 
+                                text: '不良項目',
+                                font: { size: 14 }
+                            },
+                            ticks: { 
+                                font: { size: 12 },
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: { 
+                                display: true, 
+                                text: '不良率 (%)',
+                                font: { size: 14 }
+                            },
+                            ticks: { 
+                                font: { size: 12 }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function fetchDefectData() {
+            const dateFrom = document.getElementById('date-from').value;
+            const dateTo = document.getElementById('date-to').value;
+            const ct_type = document.getElementById('ct_type').value;
+            const color = document.getElementById('color').value;
+            let url = '/api/spc_defect_monthly_data?';
+            if (dateFrom) url += `start_date=${encodeURIComponent(dateFrom)}&`;
+            if (dateTo) url += `end_date=${encodeURIComponent(dateTo)}`;
+            if (ct_type) url += `ct_type=${encodeURIComponent(ct_type)}&`;
+            if (color) url += `color=${encodeURIComponent(color)}`;
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    updateChart(data, 'pre');
+                    updateChart(data, 'pst');
+                    updateDefectSummary(data, 'pre');
+                    updateDefectSummary(data, 'pst');
+                    updatePeriodSummary(data);
+                    updatePeriodTotalChart(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                });
+        }
+        // 初期表示
+        fetchDefectData();
+    });
+</script>
+{% endblock %} 

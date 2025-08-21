@@ -1,0 +1,710 @@
+{% extends 'base.html' %}
+
+{% block style %}
+<style>
+    .chart-container {
+        position: relative;
+        height: 400px;
+        width: 100%;
+        margin-bottom: 30px;
+    }
+    .filters {
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    .total-row {
+        background-color: #e9ecef;
+        font-weight: bold;
+    }
+    .defect-summary {
+        margin-top: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    .defect-summary h3 {
+        margin-bottom: 15px;
+    }
+    .defect-summary h4 {
+        margin-top: 20px;
+        margin-bottom: 15px;
+        padding: 10px;
+        background-color: #e9ecef;
+        border-radius: 5px;
+    }
+    .defect-summary table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .defect-summary th, .defect-summary td {
+        padding: 8px;
+        text-align: right;
+        border: 1px solid #ddd;
+    }
+    .defect-summary th {
+        background-color: #f2f2f2;
+        text-align: center;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    .period-summary {
+        margin-top: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    .period-summary h3 {
+        margin-bottom: 15px;
+    }
+    .period-summary table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .period-summary th, .period-summary td {
+        padding: 8px;
+        text-align: right;
+        border: 1px solid #ddd;
+    }
+    .period-summary th {
+        background-color: #f2f2f2;
+        text-align: center;
+    }
+    .time-section {
+        margin-bottom: 40px;
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .time-section h4 {
+        margin-bottom: 20px;
+        color: #333;
+        border-bottom: 2px solid #e9ecef;
+        padding-bottom: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>ハードコート不良詳細分析</h1>
+<div class="filters">
+    <h3>フィルター</h3>
+    <div class="row">
+        <div class="col-md-6">
+            <label for="date-from">開始日:</label>
+            <input type="date" id="date-from" class="form-control" value="{{ start_date.strftime('%Y-%m-%d') if start_date else '' }}">
+            <button id="today-button" class="btn btn-info m-1">今日</button>
+            <button id="yesterday-button" class="btn btn-info m-1">昨日</button>
+            <button id="this-month-button" class="btn btn-info m-1">今月</button>
+            <button id="last-month-button" class="btn btn-info m-1">前月</button>
+        </div>
+        <div class="col-md-6">
+            <label for="date-to">終了日:</label>
+            <input type="date" id="date-to" class="form-control" value="{{ end_date.strftime('%Y-%m-%d') if end_date else '' }}">
+        </div>
+    </div>
+    <div class="row mt-3">
+        <div class="col-md-6">
+            <label for="ct_type">種類:</label>
+            <select id="ct_type" class="form-control">
+                <option value="">全て</option>
+                <option value="1">1.67BF</option>
+                <option value="2">1.60PL</option>
+                <option value="3">1.60SF</option>
+                <option value="4">1.67SF</option>
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label for="color">色:</label>
+            <select id="color" class="form-control">
+                <option value="">全て</option>
+                <option value="1">SG</option>
+                <option value="2">BR</option>   
+                <option value="3">G38</option>
+                <option value="4">YGG</option>
+            </select>
+        </div>        
+    </div>
+    <div class="row mt-3">
+        <div class="col-md-12">
+            <button id="apply-filters" class="btn btn-primary">適用</button>
+            <button id="reset-filters" class="btn btn-secondary">リセット</button>
+        </div>
+    </div>
+</div>
+
+<div id="time-sections-container">
+    <!-- 時間帯ごとのセクションがここに動的に追加される -->
+</div>
+
+<div id="period-total-charts-container">
+    <!-- 時間帯ごとの期間合計グラフがここに動的に追加される -->
+</div>
+
+<div class="period-summary">
+    <h3>期間合計</h3>
+    <div class="table-responsive">
+        <table class="table table-bordered" id="period-summary-table">
+            <thead class="thead-dark">
+                <tr>
+                    <th>時間帯</th>
+                    <th>不良項目</th>
+                    <th>不良数</th>
+                    <th>不良率</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- データはJavaScriptで動的に生成 -->
+            </tbody>
+        </table>
+    </div>
+</div>
+<div id="csv-import-time" class="mt-2 text-muted"></div>
+{% if error %}
+  <div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let defectChart = null;
+        let periodTotalCharts = {};  // 期間合計グラフを格納するオブジェクト
+        setupDateButtons();
+        document.getElementById('apply-filters').addEventListener('click', function() {
+            fetchDefectData();
+        });
+        document.getElementById('reset-filters').addEventListener('click', function() {
+            document.getElementById('date-from').value = '';
+            document.getElementById('date-to').value = '';
+            document.getElementById('ct_type').value = '';
+            document.getElementById('color').value = '';
+            fetchDefectData();
+        });
+        function setupDateButtons() {
+            document.getElementById('today-button').addEventListener('click', function() {
+                const today = new Date();
+                document.getElementById('date-from').value = formatDateForInput(today);
+                document.getElementById('date-to').value = formatDateForInput(today);
+            });
+            document.getElementById('yesterday-button').addEventListener('click', function() {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                document.getElementById('date-from').value = formatDateForInput(yesterday);
+                document.getElementById('date-to').value = formatDateForInput(yesterday);
+            });
+            // 今月ボタン
+            document.getElementById('this-month-button').addEventListener('click', function(e) {
+                e.preventDefault();
+                const now = new Date();
+                const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+                const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                document.getElementById('date-from').value = formatDateForInput(firstDay);
+                document.getElementById('date-to').value = formatDateForInput(lastDay);
+            });
+            
+            // 先月ボタン
+            document.getElementById('last-month-button').addEventListener('click', function(e) {
+                e.preventDefault();
+                const now = new Date();
+                const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1);
+                const firstDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 1);
+                const lastDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0);
+                document.getElementById('date-from').value = formatDateForInput(firstDay);
+                document.getElementById('date-to').value = formatDateForInput(lastDay);
+            });
+        }
+        function createTimeSection(times) {
+            const section = document.createElement('div');
+            section.className = 'time-section';
+            section.id = `time-section-${times}`;
+
+            const header = document.createElement('h4');
+            header.textContent = `${times}回目`;
+            section.appendChild(header);
+
+            // グラフ用のコンテナ
+            const chartContainer = document.createElement('div');
+            chartContainer.className = 'chart-container';
+            const canvas = document.createElement('canvas');
+            canvas.id = `defect-chart-${times}`;
+            chartContainer.appendChild(canvas);
+            section.appendChild(chartContainer);
+
+            // テーブル用のコンテナ
+            const tableContainer = document.createElement('div');
+            tableContainer.className = 'table-responsive mt-4';
+            const table = document.createElement('table');
+            table.className = 'table table-bordered';
+            table.id = `defect-table-${times}`;
+            tableContainer.appendChild(table);
+            section.appendChild(tableContainer);
+
+            return section;
+        }
+        function updateChart(data) {
+            const container = document.getElementById('time-sections-container');
+            container.innerHTML = '';
+
+            // 不良タイプと色のマッピングを作成
+            const colorMap = {};
+            Object.keys(data.defect_labels).forEach((defect_type, index) => {
+                colorMap[defect_type] = `hsl(${(index*60)%360},70%,70%)`;
+            });
+
+            data.times_list.forEach(times => {
+                const section = createTimeSection(times);
+                container.appendChild(section);
+
+                const ctx = document.getElementById(`defect-chart-${times}`).getContext('2d');
+                const datasets = [];
+
+                Object.entries(data.defect_labels).forEach(([defect_type, label]) => {
+                    const defectData = data.dates.map(date => {
+                        if (data.summary[times]?.[date]?.items?.[defect_type] !== undefined) {
+                            const value = data.summary[times][date].items[defect_type];
+                            const total = data.summary[times][date].total_cnt;
+                            return total > 0 ? (value / total * 100) : 0;
+                        }
+                        return 0;
+                    });
+
+                    if (defectData.some(value => value > 0)) {
+                        datasets.push({
+                            label: label,
+                            data: defectData,
+                            backgroundColor: colorMap[defect_type],
+                        });
+                    }
+                });
+
+                if (datasets.length > 0) {
+                    new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: data.dates.map(date => {
+                                const d = new Date(date);
+                                const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+                                return `${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')}(${weekdays[d.getDay()]})`;
+                            }),
+                            datasets: datasets
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: `不良項目の推移`,
+                                    font: { size: 18 }
+                                },
+                                legend: { position: 'right' },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            let label = context.dataset.label || '';
+                                            if (label) label += ': ';
+                                            if (context.parsed.y !== null) {
+                                                const rate = context.parsed.y;
+                                                label += (rate < 0.01 ? '0.00' : rate.toFixed(2)) + '%';
+                                            }
+                                            return label;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    stacked: true,
+                                    title: { display: true, text: '日付' },
+                                    ticks: { font: { size: 14 } }
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    stacked: true,
+                                    title: { display: true, text: '不良率 (%)' },
+                                    ticks: { 
+                                        font: { size: 14 },
+                                        callback: function(value) {
+                                            return value.toFixed(2) + '%';
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // テーブルの更新
+                const table = document.getElementById(`defect-table-${times}`);
+                const thead = document.createElement('thead');
+                thead.className = 'thead-dark';
+                const headerRow = document.createElement('tr');
+                
+                const itemHeader = document.createElement('th');
+                itemHeader.textContent = '不良項目';
+                headerRow.appendChild(itemHeader);
+
+                data.dates.forEach(date => {
+                    const th = document.createElement('th');
+                    const d = new Date(date);
+                    const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+                    th.textContent = `${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')}(${weekdays[d.getDay()]})`;
+                    headerRow.appendChild(th);
+                });
+
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+
+                const tbody = document.createElement('tbody');
+                Object.entries(data.defect_labels).forEach(([defect_type, label]) => {
+                    const row = document.createElement('tr');
+                    
+                    const labelCell = document.createElement('td');
+                    labelCell.textContent = label;
+                    row.appendChild(labelCell);
+
+                    data.dates.forEach(date => {
+                        const cell = document.createElement('td');
+                        if (data.summary[times]?.[date]?.items?.[defect_type] !== undefined) {
+                            const value = data.summary[times][date].items[defect_type];
+                            const total = data.summary[times][date].total_cnt;
+                            const rate = total > 0 ? (value / total * 100) : 0;
+                            cell.textContent = `${value}件 (${rate < 0.01 ? '0.00' : rate.toFixed(2)}%)`;
+                        } else {
+                            cell.textContent = '-';
+                        }
+                        row.appendChild(cell);
+                    });
+
+                    tbody.appendChild(row);
+                });
+
+                // 合計行の追加
+                const totalRow = document.createElement('tr');
+                totalRow.classList.add('total-row');
+                
+                const totalLabel = document.createElement('td');
+                totalLabel.textContent = '合計';
+                totalRow.appendChild(totalLabel);
+
+                data.dates.forEach(date => {
+                    const cell = document.createElement('td');
+                    if (data.summary[times]?.[date]) {
+                        let totalDefects = 0;
+                        Object.keys(data.defect_labels).forEach(defect_type => {
+                            if (data.summary[times][date].items[defect_type]) {
+                                totalDefects += data.summary[times][date].items[defect_type];
+                            }
+                        });
+                        const total = data.summary[times][date].total_cnt;
+                        const rate = total > 0 ? (totalDefects / total * 100) : 0;
+                        cell.textContent = `${totalDefects}件 (${rate < 0.01 ? '0.00' : rate.toFixed(2)}%)`;
+                    } else {
+                        cell.textContent = '-';
+                    }
+                    totalRow.appendChild(cell);
+                });
+
+                tbody.appendChild(totalRow);
+                table.appendChild(tbody);
+            });
+        }
+        function updatePeriodSummary(data) {
+            const tableBody = document.getElementById('period-summary-table').getElementsByTagName('tbody')[0];
+            tableBody.innerHTML = '';
+
+            // 時間帯ごとの集計
+            data.times_list.forEach(times => {
+                let totalDefects = 0;
+                let totalSheets = 0;
+
+                // この時間帯の合計シート数を計算
+                data.dates.forEach(date => {
+                    if (data.summary[times]?.[date]) {
+                        totalSheets += data.summary[times][date].total_cnt;
+                    }
+                });
+
+                // 各不良項目の合計を計算
+                Object.entries(data.defect_labels).forEach(([defect_type, label]) => {
+                    let defectTotal = 0;
+                    data.dates.forEach(date => {
+                        if (data.summary[times]?.[date]?.items?.[defect_type]) {
+                            defectTotal += data.summary[times][date].items[defect_type];
+                        }
+                    });
+
+                    if (defectTotal > 0) {
+                        const row = document.createElement('tr');
+                        
+                        // 時間帯
+                        const timesCell = document.createElement('td');
+                        timesCell.textContent = times + '回目';
+                        row.appendChild(timesCell);
+
+                        // 不良項目
+                        const typeCell = document.createElement('td');
+                        typeCell.textContent = label;
+                        row.appendChild(typeCell);
+
+                        // 不良数
+                        const countCell = document.createElement('td');
+                        countCell.textContent = defectTotal;
+                        row.appendChild(countCell);
+
+                        // 不良率
+                        const rateCell = document.createElement('td');
+                        const rate = totalSheets > 0 ? (defectTotal / totalSheets * 100) : 0;
+                        rateCell.textContent = (rate < 0.01 ? '0.00' : rate.toFixed(2)) + '%';
+                        row.appendChild(rateCell);
+
+                        tableBody.appendChild(row);
+                        totalDefects += defectTotal;
+                    }
+                });
+
+                // 時間帯ごとの合計行
+                if (totalDefects > 0) {
+                    const totalRow = document.createElement('tr');
+                    totalRow.classList.add('total-row');
+
+                    const timesCell = document.createElement('td');
+                    timesCell.textContent = times + '回目';
+                    totalRow.appendChild(timesCell);
+
+                    const totalLabelCell = document.createElement('td');
+                    totalLabelCell.textContent = '合計';
+                    totalRow.appendChild(totalLabelCell);
+
+                    const totalCountCell = document.createElement('td');
+                    totalCountCell.textContent = totalDefects;
+                    totalRow.appendChild(totalCountCell);
+
+                    const totalRateCell = document.createElement('td');
+                    const totalRate = totalSheets > 0 ? (totalDefects / totalSheets * 100) : 0;
+                    totalRateCell.textContent = (totalRate < 0.01 ? '0.00' : totalRate.toFixed(2)) + '%';
+                    totalRow.appendChild(totalRateCell);
+
+                    tableBody.appendChild(totalRow);
+
+                    // 時間帯の区切り行を追加
+                    const separatorRow = document.createElement('tr');
+                    separatorRow.innerHTML = '<td colspan="4" style="height: 10px; background-color: #f8f9fa;"></td>';
+                    tableBody.appendChild(separatorRow);
+                }
+            });
+
+            // 全時間帯の総合計
+            let grandTotalDefects = 0;
+            let grandTotalSheets = 0;
+
+            // 総合計の計算
+            data.dates.forEach(date => {
+                data.times_list.forEach(times => {
+                    if (data.summary[times]?.[date]) {
+                        grandTotalSheets += data.summary[times][date].total_cnt;
+                        Object.entries(data.defect_labels).forEach(([defect_type]) => {
+                            if (data.summary[times][date].items[defect_type]) {
+                                grandTotalDefects += data.summary[times][date].items[defect_type];
+                            }
+                        });
+                    }
+                });
+            });
+
+            // 総合計行の追加
+            if (grandTotalDefects > 0) {
+                const grandTotalRow = document.createElement('tr');
+                grandTotalRow.classList.add('grand-total-row');
+                grandTotalRow.style.backgroundColor = '#e3e6e9';
+                grandTotalRow.style.fontWeight = 'bold';
+
+                const timesCell = document.createElement('td');
+                timesCell.textContent = '全時間帯';
+                grandTotalRow.appendChild(timesCell);
+
+                const totalLabelCell = document.createElement('td');
+                totalLabelCell.textContent = '総合計';
+                grandTotalRow.appendChild(totalLabelCell);
+
+                const totalCountCell = document.createElement('td');
+                totalCountCell.textContent = grandTotalDefects;
+                grandTotalRow.appendChild(totalCountCell);
+
+                const totalRateCell = document.createElement('td');
+                const grandTotalRate = grandTotalSheets > 0 ? (grandTotalDefects / grandTotalSheets * 100) : 0;
+                totalRateCell.textContent = (grandTotalRate < 0.01 ? '0.00' : grandTotalRate.toFixed(2)) + '%';
+                grandTotalRow.appendChild(totalRateCell);
+
+                tableBody.appendChild(grandTotalRow);
+            }
+        }
+        function createPeriodTotalSection(times) {
+            const section = document.createElement('div');
+            section.className = 'time-section';
+            section.id = `period-total-section-${times}`;
+
+            const header = document.createElement('h4');
+            header.textContent = `${times}回目 期間合計`;
+            section.appendChild(header);
+
+            const chartContainer = document.createElement('div');
+            chartContainer.className = 'chart-container';
+            const canvas = document.createElement('canvas');
+            canvas.id = `period-total-chart-${times}`;
+            chartContainer.appendChild(canvas);
+            section.appendChild(chartContainer);
+
+            return section;
+        }
+        function updatePeriodTotalCharts(data) {
+            const container = document.getElementById('period-total-charts-container');
+            container.innerHTML = '';
+
+            // 不良タイプと色のマッピングを作成
+            const colorMap = {};
+            Object.keys(data.defect_labels).forEach((defect_type, index) => {
+                colorMap[defect_type] = `hsl(${(index*60)%360},70%,70%)`;
+            });
+
+            data.times_list.forEach(times => {
+                // 該当時間帯のデータが存在するか確認
+                let hasData = false;
+                let totalSheets = 0;
+
+                data.dates.forEach(date => {
+                    if (data.summary[times]?.[date]) {
+                        totalSheets += data.summary[times][date].total_cnt;
+                        hasData = true;
+                    }
+                });
+
+                if (!hasData) return;
+
+                // セクションを作成
+                const section = createPeriodTotalSection(times);
+                container.appendChild(section);
+
+                const ctx = document.getElementById(`period-total-chart-${times}`).getContext('2d');
+                if (periodTotalCharts[times]) {
+                    periodTotalCharts[times].destroy();
+                }
+
+                // 不良データの計算と格納
+                const defectItems = [];
+                Object.entries(data.defect_labels).forEach(([defect_type, label]) => {
+                    let defectTotal = 0;
+                    data.dates.forEach(date => {
+                        if (data.summary[times]?.[date]?.items?.[defect_type]) {
+                            defectTotal += data.summary[times][date].items[defect_type];
+                        }
+                    });
+
+                    if (defectTotal > 0) {
+                        const rate = totalSheets > 0 ? (defectTotal / totalSheets * 100) : 0;
+                        defectItems.push({
+                            defect_type: defect_type,
+                            label: label,
+                            rate: rate,
+                            color: colorMap[defect_type]
+                        });
+                    }
+                });
+
+                // 不良率で降順ソート
+                defectItems.sort((a, b) => b.rate - a.rate);
+
+                periodTotalCharts[times] = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: defectItems.map(item => item.label),
+                        datasets: [{
+                            label: '期間合計不良率',
+                            data: defectItems.map(item => item.rate),
+                            backgroundColor: defectItems.map(item => item.color),
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: `${times}回目 期間合計不良率`,
+                                font: { size: 18 }
+                            },
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const rate = context.parsed.y;
+                                        return `不良率: ${rate < 0.01 ? '0.00' : rate.toFixed(2)}%`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: { 
+                                    display: true, 
+                                    text: '不良項目',
+                                    font: { size: 14 }
+                                },
+                                ticks: { 
+                                    font: { size: 12 },
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                title: { 
+                                    display: true, 
+                                    text: '不良率 (%)',
+                                    font: { size: 14 }
+                                },
+                                ticks: { 
+                                    font: { size: 12 },
+                                    callback: function(value) {
+                                        return value.toFixed(2) + '%';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+        }
+        function fetchDefectData() {
+            const dateFrom = document.getElementById('date-from').value;
+            const dateTo = document.getElementById('date-to').value;
+            const ct_type = document.getElementById('ct_type').value;
+            const color = document.getElementById('color').value;
+            let url = '/api/hdc_defect_detail_data?';
+            if (dateFrom) url += `start_date=${encodeURIComponent(dateFrom)}&`;
+            if (dateTo) url += `end_date=${encodeURIComponent(dateTo)}`;
+            if (ct_type) url += `ct_type=${encodeURIComponent(ct_type)}&`;
+            if (color) url += `color=${encodeURIComponent(color)}`;
+            fetch(url)
+                .then(response => response.json())
+                .then(apiData => {
+                    updateChart(apiData);
+                    updatePeriodSummary(apiData);
+                    updatePeriodTotalCharts(apiData);  // 期間合計グラフの更新を追加
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                });
+        }
+        // 初期表示
+        fetchDefectData();
+    });
+</script>
+{% endblock %} 

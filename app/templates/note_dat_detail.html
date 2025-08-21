@@ -1,0 +1,249 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>特記事項 詳細</h2>
+    <table class="table table-bordered">
+        <tr><th>ID</th><td>{{ note.NOTE_ID }}</td></tr>
+        <tr><th>ロットNo.</th><td>{{ note.NOTE_LOT_NO }}</td></tr>
+        <tr><th>入力日</th><td>{{ note.NOTE_DATE.strftime('%Y-%m-%d') if note.NOTE_DATE else '' }}</td></tr>
+        <tr><th>入力者</th><td>
+            {% if note.worker and note.worker.WRK_NM %}
+                {{ note.worker.WRK_NM }}
+            {% elif worker_dict and note.NOTE_USER and note.NOTE_USER|string in worker_dict %}
+                {{ worker_dict[note.NOTE_USER|string] }}
+            {% else %}
+                {{ note.NOTE_USER }}
+            {% endif %}
+        </td></tr>
+        <tr><th>項目名</th><td>{{ note.NOTE_TITLE }}</td></tr>
+        <tr><th>内容</th><td>{{ note.NOTE_CNTNT }}</td></tr>
+        <tr><th>画像</th><td>
+            {% if note.NOTE_PATH %}
+                <img src="{{ url_for('static', filename='images/notes/' + note.NOTE_PATH) }}" 
+                     alt="特記事項画像" 
+                     class="img-thumbnail" 
+                     style="max-width: 400px; max-height: 300px; cursor: pointer;"
+                     onclick="openImageModal(this.src)">
+            {% else %}
+                画像なし
+            {% endif %}
+        </td></tr>
+    </table>
+    
+    <!-- 返信スレッド表示エリア -->
+    <div class="card my-4">
+        <div class="card-header bg-info text-white">返信スレッド</div>
+        <div class="card-body" id="replyThread" style="max-height: 350px; overflow-y: auto;">
+            {% if replies and replies|length > 0 %}
+                <ul class="list-unstyled">
+                    {% for reply in replies %}
+                    <li class="media mb-3">
+                        <div class="media-body">
+                            <div class="d-flex align-items-center mb-1">
+                                <span class="badge badge-secondary mr-2">{{ reply.worker.WRK_NM if reply.worker else reply.NANS_USER }}</span>
+                                <small class="text-muted">{{ reply.NANS_DATE.strftime('%Y-%m-%d %H:%M') if reply.NANS_DATE else '' }}</small>
+                            </div>
+                            <div class="p-2 bg-light rounded border" style="display:inline-block; max-width:80%;">
+                                {{ reply.NANS_CNTNT | e | replace('\n', '<br>') | safe }}
+                            </div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="text-muted">返信はまだありません。</div>
+            {% endif %}
+        </div>
+    </div>
+    <!-- 返信投稿フォーム -->
+    <form method="post" action="{{ url_for('main.note_reply', note_id=note.NOTE_ID) }}" class="mb-4">
+        <div class="form-group">
+            <label for="reply_user">返信者</label>
+            <select name="reply_user" id="reply_user" class="form-control" required>
+                <option value="">--- 選択してください ---</option>
+                {% for worker in workers %}
+                    <option value="{{ worker.WRK_ID }}">{{ worker.WRK_NM }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="reply_content">返信内容</label>
+            <textarea name="reply_content" id="reply_content" class="form-control" rows="2" maxlength="200" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">返信する</button>
+    </form>
+    
+    <!-- 画像拡大表示モーダル -->
+    <div class="modal fade" id="imageModal" tabindex="-1" role="dialog" aria-labelledby="imageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="imageModalLabel">画像表示</h5>
+                    <div class="zoom-controls">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="zoomOut()">縮小</button>
+                        <span id="zoomLevel" class="mx-2">100%</span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="zoomIn()">拡大</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary ml-2" onclick="resetZoom()">リセット</button>
+                    </div>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body text-center" style="overflow: auto; max-height: 70vh;">
+                    <div id="imageContainer" style="display: inline-block; transition: transform 0.3s ease;">
+                        <img id="modalImage" src="" alt="特記事項画像" style="max-width: none; height: auto; cursor: grab;">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <small class="text-muted">マウスホイールでズーム、ドラッグで移動できます</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <a href="{{ url_for('main.note_dat_edit', note_id=note.NOTE_ID) }}" class="btn btn-warning">編集</a>
+    <a href="{{ url_for('main.note_dat_list') }}" class="btn btn-secondary">一覧へ戻る</a>
+    
+    <script>
+        let currentZoom = 1;
+        let isDragging = false;
+        let startX, startY, scrollLeft, scrollTop;
+        
+        function openImageModal(src) {
+            document.getElementById('modalImage').src = src;
+            resetZoom();
+            $('#imageModal').modal('show');
+        }
+        
+        function zoomIn() {
+            currentZoom = Math.min(currentZoom * 1.2, 5); // 最大5倍
+            updateZoom();
+        }
+        
+        function zoomOut() {
+            currentZoom = Math.max(currentZoom / 1.2, 0.1); // 最小0.1倍
+            updateZoom();
+        }
+        
+        function resetZoom() {
+            currentZoom = 1;
+            updateZoom();
+        }
+        
+        function updateZoom() {
+            const container = document.getElementById('imageContainer');
+            const zoomLevel = document.getElementById('zoomLevel');
+            
+            container.style.transform = `scale(${currentZoom})`;
+            zoomLevel.textContent = Math.round(currentZoom * 100) + '%';
+            
+            // カーソルの変更
+            const modalImage = document.getElementById('modalImage');
+            if (currentZoom > 1) {
+                modalImage.style.cursor = 'move';
+            } else {
+                modalImage.style.cursor = 'grab';
+            }
+        }
+        
+        // マウスホイールでズーム
+        document.getElementById('imageModal').addEventListener('wheel', function(e) {
+            e.preventDefault();
+            if (e.deltaY < 0) {
+                zoomIn();
+            } else {
+                zoomOut();
+            }
+        });
+        
+        // ドラッグ機能
+        const modalBody = document.querySelector('#imageModal .modal-body');
+        
+        modalBody.addEventListener('mousedown', function(e) {
+            if (currentZoom > 1) {
+                isDragging = true;
+                startX = e.pageX - modalBody.offsetLeft;
+                startY = e.pageY - modalBody.offsetTop;
+                scrollLeft = modalBody.scrollLeft;
+                scrollTop = modalBody.scrollTop;
+                modalBody.style.cursor = 'grabbing';
+            }
+        });
+        
+        modalBody.addEventListener('mouseleave', function() {
+            isDragging = false;
+            modalBody.style.cursor = 'grab';
+        });
+        
+        modalBody.addEventListener('mouseup', function() {
+            isDragging = false;
+            modalBody.style.cursor = currentZoom > 1 ? 'move' : 'grab';
+        });
+        
+        modalBody.addEventListener('mousemove', function(e) {
+            if (!isDragging || currentZoom <= 1) return;
+            e.preventDefault();
+            const x = e.pageX - modalBody.offsetLeft;
+            const y = e.pageY - modalBody.offsetTop;
+            const walkX = (x - startX) * 2;
+            const walkY = (y - startY) * 2;
+            modalBody.scrollLeft = scrollLeft - walkX;
+            modalBody.scrollTop = scrollTop - walkY;
+        });
+        
+        // タッチデバイス対応
+        let initialDistance = 0;
+        let initialZoom = 1;
+        
+        modalBody.addEventListener('touchstart', function(e) {
+            if (e.touches.length === 2) {
+                // ピンチズーム開始
+                initialDistance = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+                initialZoom = currentZoom;
+            } else if (e.touches.length === 1 && currentZoom > 1) {
+                // ドラッグ開始
+                isDragging = true;
+                startX = e.touches[0].pageX - modalBody.offsetLeft;
+                startY = e.touches[0].pageY - modalBody.offsetTop;
+                scrollLeft = modalBody.scrollLeft;
+                scrollTop = modalBody.scrollTop;
+            }
+        });
+        
+        modalBody.addEventListener('touchmove', function(e) {
+            e.preventDefault();
+            if (e.touches.length === 2) {
+                // ピンチズーム
+                const currentDistance = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+                const scale = currentDistance / initialDistance;
+                currentZoom = Math.min(Math.max(initialZoom * scale, 0.1), 5);
+                updateZoom();
+            } else if (e.touches.length === 1 && isDragging && currentZoom > 1) {
+                // ドラッグ
+                const x = e.touches[0].pageX - modalBody.offsetLeft;
+                const y = e.touches[0].pageY - modalBody.offsetTop;
+                const walkX = (x - startX) * 2;
+                const walkY = (y - startY) * 2;
+                modalBody.scrollLeft = scrollLeft - walkX;
+                modalBody.scrollTop = scrollTop - walkY;
+            }
+        });
+        
+        modalBody.addEventListener('touchend', function() {
+            isDragging = false;
+        });
+
+        // 返信スレッドのスクロール位置を最新に
+        window.addEventListener('DOMContentLoaded', function() {
+            var thread = document.getElementById('replyThread');
+            if(thread) thread.scrollTop = thread.scrollHeight;
+        });
+    </script>
+</div>
+{% endblock %} 

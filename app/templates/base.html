@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <title>実績管理</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">実績管理</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="uploadDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            CSV
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="uploadDropdown">
+                            <a class="dropdown-item" href="{{ url_for('upload.upload') }}">実績CSV取込</a>
+                            <a class="dropdown-item" href="{{ url_for('upload.upload2') }}">注入日・検査日CSV取込</a>
+                            <a class="dropdown-item" href="{{ url_for('upload.upload4') }}">指示データCSV取込</a>
+                            <a class="dropdown-item" href="{{ url_for('upload.upload6') }}">膜加工データCSV取込</a>
+                            <a class="dropdown-item" href="{{ url_for('upload.upload5') }}">膜カットデータCSV取込</a>
+                            <a class="dropdown-item" href="{{ url_for('upload.upload_prd_mst') }}">製品マスタCSV取込</a>
+                        </div>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="resultsDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            実績
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="resultsDropdown">
+                            <a class="dropdown-item" href="{{ url_for('main.results') }}">R1・R2実績</a>
+                            <a class="dropdown-item" href="{{ url_for('main.results2') }}">検査実績</a>
+                            <a class="dropdown-item" href="{{ url_for('main.progress') }}">進捗状況</a>
+                            <a class="dropdown-item" href="{{ url_for('main.inspection_search') }}">未検査品一覧</a>
+                            <a class="dropdown-item" href="{{ url_for('main.anneal_incomplete') }}">アニール未完了一覧</a>
+                            <a class="dropdown-item" href="{{ url_for('main.fmc_dat_list') }}">膜カットデータ一覧</a>
+                            <a class="dropdown-item" href="{{ url_for('main.fmc_cross_table') }}">膜カット合格数クロス集計</a>
+                            <a class="dropdown-item" href="{{ url_for('main.note_dat_list') }}">特記事項</a>
+                        </div>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="analysisDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            分析
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="analysisDropdown">
+                            <a class="dropdown-item" href="{{ url_for('analyse.defect_analysis') }}">不良率分析</a>
+                            <a class="dropdown-item" href="{{ url_for('analyse.mono_syu_defect') }}">モノマー種別良品率</a>
+                            <a class="dropdown-item" href="{{ url_for('analyse.mono_syu_defect_detail') }}">モノマー種別不良詳細</a>
+                            <a class="dropdown-item" href="{{ url_for('main.prd_record_monthly_analysis') }}">生産実績不良データ（月別）</a>
+                            <a class="dropdown-item" href="{{ url_for('analyse.high_defect_rate') }}">不良率上位項目</a>
+                            <a class="dropdown-item" href="{{ url_for('analyse.defect_by_item') }}">不良項目別分析</a>
+                            <a class="dropdown-item" href="{{ url_for('analyse.mono_syu_achievement') }}">モノマー種別達成率</a>
+                            <a class="dropdown-item" href="{{ url_for('analyse.mono_syu_inspection') }}">モノマー種別検査実績</a>
+                            <a class="dropdown-item" href="{{ url_for('analyse.fmc_defect_analysis') }}">膜カット不良率分析</a>
+                            <a class="dropdown-item" href="{{ url_for('analyse.fmc_defect_detail_analysis') }}">膜カット不良詳細分析</a>
+                            <a class="dropdown-item" href="{{ url_for('analyse.fmc_defect_monthly_analysis') }}">膜カット不良データ（月別）</a>
+                            <a class="dropdown-item" href="{{ url_for('analyse.fmc_monomer_summary') }}">膜カット モノマー別集計</a>
+                        </div>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="slideDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            SLD
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="slideDropdown">
+                            <a class="dropdown-item" href="{{ url_for('main.settings') }}">設定</a>
+                            <a class="dropdown-item" href="{{ url_for('analyse.mono_syu_slide') }}">モノマー種別スライド</a>
+                        </div>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="masterDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            マスタ
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="masterDropdown">
+                            <a class="dropdown-item" href="{{ url_for('master.kbn_mst_list') }}">区分マスタ</a>
+                            <a class="dropdown-item" href="{{ url_for('master.prd_mst_list') }}">製品マスタ</a>
+                            <a class="dropdown-item" href="{{ url_for('master.mno_mst_list') }}">モノマーマスタ</a>
+                        </div>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="ishida1Dropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            石田第一
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="ishida1Dropdown">
+                            <a class="dropdown-item" href="{{ url_for('upload.upload6') }}">膜加工データCSV取込</a>
+                            <a class="dropdown-item" href="{{ url_for('ishida1.fmp_defect_analysis') }}">膜加工データ</a>
+                            <a class="dropdown-item" href="{{ url_for('ishida1.fmp_defect_detail_analysis') }}">膜加工データ（詳細）</a>
+                            <a class="dropdown-item" href="{{ url_for('ishida1.fmp_defect_monthly_analysis') }}">膜加工データ（月別）</a>
+                            <a class="dropdown-item" href="{{ url_for('ishida1.color_trans_defects') }}">カラー不良データ入力用</a>
+                            <a class="dropdown-item" href="{{ url_for('ishida1.color_trans_defects_slide') }}">不良分析（スライド）</a>
+                        </div>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="ishida2Dropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            石田第二
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="ishida2Dropdown">
+                            <a class="dropdown-item" href="{{ url_for('ishida2.import_spc') }}">スピンコートデータCSV取込</a>
+                            <a class="dropdown-item" href="{{ url_for('ishida2.import_hdc') }}">ハードコートデータCSV取込</a>
+                            <a class="dropdown-item" href="{{ url_for('ishida2.hdc_defect_analysis') }}">ハードコート不良率分析</a>
+                            <a class="dropdown-item" href="{{ url_for('ishida2.hdc_defect_monthly_analysis') }}">ハードコート不良データ（月別）</a>
+                            <a class="dropdown-item" href="{{ url_for('ishida2.spc_defect_analysis') }}">スピンコート不良率分析</a>
+                            <a class="dropdown-item" href="{{ url_for('ishida2.spc_defect_monthly_analysis') }}">スピンコート不良データ（月別）</a>
+                            <a class="dropdown-item" href="{{ url_for('ishida2.spc_type_analysis') }}">スピンコート種類別分析</a>
+                            <a class="dropdown-item" href="{{ url_for('ishida2.hdc_type_analysis') }}">ハードコート種類別分析</a>
+                            <a class="dropdown-item" href="{{ url_for('ishida2.hdc_spn_slide') }}">ハードコートスピンコートスライダー</a>
+                        </div>
+                    </li>
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('auth.logout') }}">ログアウト</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </nav>
+    </header>
+    
+    <main>
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for message in messages %}
+            <div class="message">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </main>
+    
+    <footer>
+        <div id="csv-import-time" style="text-align: right;"></div>
+    </footer>
+    {% block scripts %}
+    <!-- 子テンプレートのスクリプトはここに挿入される -->
+    {% endblock %}
+    {% block style %}
+    {% endblock %}
+    <script>
+        /* 共通の日付フォーマット関数 */
+        function formatDateForInput(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        
+        /* 共通の色設定 */
+        const root = {
+            total_inject: '#FFB6C1', // パステルピンク
+            roll_miss: '#98FB98', // パステルグリーン
+            leak: '#87CEEB', // パステルブルー
+            film_pull: '#FFC0CB', // パステルピンク
+            crack: '#E0FFFF', // パステルシアン
+            tear: '#FFE4B5', // パステルオレンジ
+            peel: '#E6E6FA', // パステルラベンダー
+            chip: '#FFA07A', // パステルサーモン
+            poly_crk: '#98FF98', // パステルミント
+            mold_scr: '#FFDAB9', // パステルピーチ
+            lens_scr: '#B0E0E6', // パステルスカイブルー
+            r1_bubble: '#FFB6C1', // パステルピンク
+            r2_bubble: '#AFEEEE', // パステルアクア
+            defect: '#FFA07A', // パステルサーモン
+            elution: '#90EE90', // パステルグリーン
+            haze: '#B0C4DE', // パステルブルー
+            curl: '#FFB6C1', // パステルピンク
+            film_float: '#E0FFFF', // パステルシアン
+            r1_defect: '#FFE4B5', // パステルオレンジ
+            film_ng: '#E6E6FA', // パステルラベンダー
+            foreign: '#FFA07A', // パステルサーモン
+            cut_waste: '#98FF98', // パステルミント
+            fiber: '#FFDAB9', // パステルピーチ
+            mold_dirt: '#B0E0E6', // パステルスカイブルー
+            film_dirt: '#FFB6C1', // パステルピンク
+            axis_1st: '#AFEEEE', // パステルアクア
+            stripe_1st: '#FFA07A', // パステルサーモン
+            edge_defect: '#90EE90', // パステルグリーン
+            wash_drop: '#B0C4DE', // パステルブルー
+            unknown: '#FFB6C1', // パステルピンク
+            other_1: '#E0FFFF', // パステルシアン
+            ecc_defect: '#FFE4B5', // パステルオレンジ
+            drop: '#E6E6FA', // パステルラベンダー
+            count_err: '#FFA07A', // パステルサーモン
+            suction: '#98FF98', // パステルミント
+            axis_def: '#FFDAB9', // パステルピーチ
+            color_def: '#B0E0E6', // パステルスカイブルー
+            trans_def: '#FFB6C1', // パステルピンク
+            curve_def: '#AFEEEE', // パステルアクア
+            cen_th_def: '#FFA07A', // パステルサーモン
+            diam_def: '#90EE90', // パステルグリーン
+            r1_th_def: '#B0C4DE' // パステルブルー
+    };
+    </script>
+</body>
+</html> 

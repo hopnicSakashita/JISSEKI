@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>膜カット不良率分析</h2>
+    
+    <!-- 検索フォーム -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form id="searchForm" class="row g-3">
+                <div class="col-md-3 mb-3">
+                    <label for="start_date" class="form-label">カット日開始</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="end_date" class="form-label">カット日終了</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="r1_inj_date" class="form-label">R1注入日</label>
+                    <input type="date" class="form-control" id="r1_inj_date" name="r1_inj_date">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="monomer" class="form-label">モノマー</label>
+                    <select class="form-control" id="monomer" name="monomer">
+                        <option value="">選択</option>
+                        {% for m in monomers %}
+                        <option value="{{ m.KBN_ID }}">{{ m.KBN_NM }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label for="anneal_no" class="form-label">アニール№</label>
+                    <input type="number" class="form-control" id="anneal_no" name="anneal_no">
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label for="cut_mach_no" class="form-label">カット機№</label>
+                    <input type="number" class="form-control" id="cut_mach_no" name="cut_mach_no">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="item" class="form-label">アイテム</label>
+                    <select class="form-control" id="item" name="item">
+                        <option value="">選択</option>
+                        {% for i in items %}
+                        <option value="{{ i.KBN_ID }}">{{ i.KBN_NM }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="cut_menu" class="form-label">カットメニュー</label>
+                    <select class="form-control" id="cut_menu" name="cut_menu">
+                        <option value="">選択</option>
+                        {% for m in cut_menus %}
+                        <option value="{{ m.KBN_ID }}">{{ m.KBN_NM }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="film_proc_dt" class="form-label">膜加工日</label>
+                    <input type="date" class="form-control" id="film_proc_dt" name="film_proc_dt">
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label for="cr_film" class="form-label">CR膜</label>
+                    <select class="form-control" id="cr_film" name="cr_film">
+                        <option value="">選択</option>
+                        <option value="0">なし</option>
+                        <option value="1">あり</option>
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="heat_proc_dt" class="form-label">熱処理日</label>
+                    <input type="date" class="form-control" id="heat_proc_dt" name="heat_proc_dt">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="film_curve" class="form-label">膜カーブ</label>
+                    <select class="form-control" id="film_curve" name="film_curve">
+                        <option value="">選択</option>
+                        {% for c in film_curves %}
+                        <option value="{{ c.KBN_ID }}">{{ c.KBN_NM }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="color" class="form-label">色</label>
+                    <select class="form-control" id="color" name="color">
+                        <option value="">選択</option>
+                        {% for c in colors %}
+                        <option value="{{ c.KBN_ID }}">{{ c.KBN_NM }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">分析実行</button>
+                    <button type="reset" class="btn btn-secondary">リセット</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 結果表示エリア -->
+    <div id="resultArea" style="display: none;">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">分析結果</h5>
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <p>総投入数: <span id="totalInput">0</span>個</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p>良品数: <span id="totalGood">0</span>個</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p>カット工程総良品率: <span id="totalCutDefectRate">0</span>%</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p>洗浄工程総良品率: <span id="totalWashDefectRate">0</span>%</p>
+                    </div>
+                </div>
+                
+                <!-- カット工程の不良率 -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h6>カット工程の不良率（投入数に対する割合）</h6>
+                    </div>
+                    <div class="col-md-6">
+                        <canvas id="cutDefectChart"></canvas>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>不良項目</th>
+                                        <th>不良率</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cutDefectTable">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 洗浄工程の不良率 -->
+                <div class="row">
+                    <div class="col-12">
+                        <h6>洗浄工程の不良率（良品数に対する割合）</h6>
+                    </div>
+                    <div class="col-md-6">
+                        <canvas id="washDefectChart"></canvas>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>不良項目</th>
+                                        <th>不良率</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="washDefectTable">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let cutDefectChart = null;
+let washDefectChart = null;
+
+document.getElementById('searchForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const params = new URLSearchParams();
+    
+    for (let [key, value] of formData.entries()) {
+        if (value) {
+            params.append(key, value);
+        }
+    }
+    
+    try {
+        const response = await fetch(`/api/fmc_defect_analysis?${params.toString()}`);
+        const data = await response.json();
+        
+        if (response.ok) {
+            displayResults(data);
+        } else {
+            alert(data.error || 'エラーが発生しました');
+        }
+    } catch (error) {
+        alert('エラーが発生しました');
+        console.error(error);
+    }
+});
+
+function displayResults(data) {
+    // 結果表示エリアを表示
+    document.getElementById('resultArea').style.display = 'block';
+    
+    // 基本情報の表示
+    document.getElementById('totalInput').textContent = Number(data.total_input).toLocaleString();
+    document.getElementById('totalGood').textContent = Number(data.total_good).toLocaleString();
+    document.getElementById('totalCutDefectRate').textContent = 100 - Number(data.total_cut_defect_rate).toFixed(2);
+    document.getElementById('totalWashDefectRate').textContent = 100 - Number(data.total_wash_defect_rate).toFixed(2);
+    
+    // カット工程のテーブル更新
+    const cutTableBody = document.getElementById('cutDefectTable');
+    cutTableBody.innerHTML = '';
+    
+    for (const [defect, rate] of Object.entries(data.cut_defect_rates)) {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${defect}</td>
+            <td>${Number(rate).toFixed(2)}%</td>
+        `;
+        cutTableBody.appendChild(row);
+    }
+    
+    // 洗浄工程のテーブル更新
+    const washTableBody = document.getElementById('washDefectTable');
+    washTableBody.innerHTML = '';
+    
+    for (const [defect, rate] of Object.entries(data.wash_defect_rates)) {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${defect}</td>
+            <td>${Number(rate).toFixed(2)}%</td>
+        `;
+        washTableBody.appendChild(row);
+    }
+    
+    // カット工程のグラフ更新
+    if (cutDefectChart) {
+        cutDefectChart.destroy();
+    }
+    
+    const cutCtx = document.getElementById('cutDefectChart').getContext('2d');
+    cutDefectChart = new Chart(cutCtx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(data.cut_defect_rates),
+            datasets: [{
+                label: '不良率 (%)',
+                data: Object.values(data.cut_defect_rates).map(rate => Number(rate)),
+                backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: '不良率 (%)'
+                    }
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'カット工程の不良率'
+                }
+            }
+        }
+    });
+    
+    // 洗浄工程のグラフ更新
+    if (washDefectChart) {
+        washDefectChart.destroy();
+    }
+    
+    const washCtx = document.getElementById('washDefectChart').getContext('2d');
+    washDefectChart = new Chart(washCtx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(data.wash_defect_rates),
+            datasets: [{
+                label: '不良率 (%)',
+                data: Object.values(data.wash_defect_rates).map(rate => Number(rate)),
+                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: '不良率 (%)'
+                    }
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: '洗浄工程の不良率'
+                }
+            }
+        }
+    });
+}
+</script>
+{% endblock %} 

@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>膜カットデータ一覧</h2>
+    
+    <!-- 検索フォーム -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('main.fmc_dat_list') }}" class="row g-3">
+                <div class="col-md-6">
+                    <label for="cut_date_start" class="form-label">カット日</label>
+                    <input type="date" class="form-control" id="cut_date_start" name="cut_date_start" value="{{ request.args.get('cut_date_start', '') }}">
+                    <button id="today-button" class="btn btn-info m-1">今日</button>
+                    <button id="yesterday-button" class="btn btn-info m-1">昨日</button>
+                    <button id="this-month-button" class="btn btn-info m-1">今月</button>
+                    <button id="last-month-button" class="btn btn-info m-1">前月</button>
+                        </div>
+                <div class="col-md-6">
+                    <label for="cut_date_end" class="form-label">カット日</label>
+                    <input type="date" class="form-control" id="cut_date_end" name="cut_date_end" value="{{ request.args.get('cut_date_end', '') }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="r1_inj_date" class="form-label">R1注入日</label>
+                    <input type="date" class="form-control" id="r1_inj_date" name="r1_inj_date" value="{{ request.args.get('r1_inj_date', '') }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="monomer" class="form-label">モノマー</label>
+                    <select class="form-control" id="monomer" name="monomer">
+                        <option value="">選択してください</option>
+                        {% for kbn in kbn_dict['MMNO'].items() %}
+                        <option value="{{ kbn[0] }}" {% if request.args.get('monomer') == kbn[0] %}selected{% endif %}>{{ kbn[1] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="cut_menu" class="form-label">カットメニュー</label>
+                    <select class="form-control" id="cut_menu" name="cut_menu">
+                        <option value="">選択してください</option>
+                        {% for kbn in kbn_dict['MCUT'].items() %}
+                        <option value="{{ kbn[0] }}" {% if request.args.get('cut_menu') == kbn[0] %}selected{% endif %}>{{ kbn[1] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="film_proc_date_start" class="form-label">膜加工日（開始）</label>
+                    <input type="date" class="form-control" id="film_proc_date_start" name="film_proc_date_start" value="{{ request.args.get('film_proc_date_start', '') }}">
+                    <button id="today-film-button" class="btn btn-info m-1">今日</button>
+                    <button id="yesterday-film-button" class="btn btn-info m-1">昨日</button>
+                    <button id="this-month-film-button" class="btn btn-info m-1">今月</button>
+                    <button id="last-month-film-button" class="btn btn-info m-1">前月</button>
+                </div>
+                <div class="col-md-3">
+                    <label for="film_proc_date_end" class="form-label">膜加工日（終了）</label>
+                    <input type="date" class="form-control" id="film_proc_date_end" name="film_proc_date_end" value="{{ request.args.get('film_proc_date_end', '') }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="color" class="form-label">色</label>
+                    <select class="form-control" id="color" name="color">
+                        <option value="">選択してください</option>
+                        {% for kbn in kbn_dict['MCLR'].items() %}
+                        <option value="{{ kbn[0] }}" {% if request.args.get('color') == kbn[0] %}selected{% endif %}>{{ kbn[1] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="film_curve" class="form-label">膜カーブ</label>
+                    <select class="form-control" id="film_curve" name="film_curve">
+                        <option value="">選択してください</option>
+                        {% for kbn in kbn_dict['MCRB'].items() %}
+                        <option value="{{ kbn[0] }}" {% if request.args.get('film_curve') == kbn[0] %}selected{% endif %}>{{ kbn[1] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">検索</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 新規作成ボタン -->
+    <div class="mb-3">
+        <a href="{{ url_for('main.fmc_dat_create') }}" class="btn btn-success">新規作成</a>
+    </div>
+
+    <!-- データ一覧テーブル -->
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th>カット日</th>
+                    <th>R1注入日</th>
+                    <th>モノマー</th>
+                    <th>アイテム</th>
+                    <th>カットメニュー</th>
+                    <th>膜加工日</th>
+                    <th>AM/PM</th>
+                    <th>CR膜</th>
+                    <th>膜カーブ</th>
+                    <th>色</th>
+                    <th>投入数</th>
+                    <th>カット不良数</th>
+                    <th>洗浄不良数</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    <td>{{ record[0].FMC_CUT_DATE.strftime('%Y-%m-%d') if record[0].FMC_CUT_DATE }}</td>
+                    <td>{{ record[0].FMC_R1_INJ_DATE.strftime('%Y-%m-%d') if record[0].FMC_R1_INJ_DATE }}</td>
+                    <td>{{ kbn_dict['MMNO'].get(record[0].FMC_MONOMER|string if record[0].FMC_MONOMER else '', record[0].FMC_MONOMER) }}</td>
+                    <td>{{ kbn_dict['MITM'].get(record[0].FMC_ITEM|string if record[0].FMC_ITEM else '', record[0].FMC_ITEM) }}</td>
+                    <td>{{ kbn_dict['MCUT'].get(record[0].FMC_CUT_MENU|string if record[0].FMC_CUT_MENU else '', record[0].FMC_CUT_MENU) }}</td>
+                    <td>{{ record[0].FMC_FILM_PROC_DT.strftime('%Y-%m-%d') if record[0].FMC_FILM_PROC_DT }}</td>
+                    <td>{{ 'AM' if record[0].FMC_AMPM == 1 else 'PM' if record[0].FMC_AMPM == 2 else '' }}</td>
+                    <td>{{ 'あり' if record[0].FMC_CR_FILM == 1 else '出荷CTあり' if record[0].FMC_CR_FILM == 2 else '出荷CTなし' if record[0].FMC_CR_FILM == 3 else 'なし' if record[0].FMC_CR_FILM == 0 else '' }}</td>
+                    <td>{{ kbn_dict['MCRB'].get(record[0].FMC_FILM_CURVE|string if record[0].FMC_FILM_CURVE else '', record[0].FMC_FILM_CURVE) }}</td>
+                    <td>{{ kbn_dict['MCLR'].get(record[0].FMC_COLOR|string if record[0].FMC_COLOR else '', record[0].FMC_COLOR) }}</td>
+                    <td>{{ record[0].FMC_INPUT_QTY }}</td>
+                    <td>{{ record[1] }}</td>
+                    <td>{{ record[2] }}</td>
+                    <td>
+                        <a href="{{ url_for('main.fmc_dat_edit', id=record[0].FMC_ID) }}" class="btn btn-sm btn-primary">編集</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 削除確認モーダル -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">削除確認</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                このレコードを削除してもよろしいですか？
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">削除</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    let recordIdToDelete = null;
+
+    // 削除ボタンのクリックイベント
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            recordIdToDelete = this.dataset.id;
+            deleteModal.show();
+        });
+    });
+
+    // 削除確認ボタンのクリックイベント
+    document.getElementById('confirmDelete').addEventListener('click', function() {
+        if (recordIdToDelete) {
+            fetch(`/fmc_dat/delete/${recordIdToDelete}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('削除処理中にエラーが発生しました。');
+            })
+            .finally(() => {
+                deleteModal.hide();
+            });
+        }
+    });
+    document.getElementById('today-button').addEventListener('click', function() {
+        const today = new Date();
+        document.getElementById('cut_date_start').value = formatDateForInput(today);
+        document.getElementById('cut_date_end').value = formatDateForInput(today);
+    });
+
+    document.getElementById('yesterday-button').addEventListener('click', function() {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        document.getElementById('cut_date_start').value = formatDateForInput(yesterday);
+        document.getElementById('cut_date_end').value = formatDateForInput(yesterday);
+    });
+
+    document.getElementById('this-month-button').addEventListener('click', function() {
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        document.getElementById('cut_date_start').value = formatDateForInput(firstDay);
+        document.getElementById('cut_date_end').value = formatDateForInput(lastDay);
+    });
+
+    document.getElementById('last-month-button').addEventListener('click', function() {
+        const now = new Date();
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1);
+        const firstDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 1);
+        const lastDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0);
+        document.getElementById('cut_date_start').value = formatDateForInput(firstDay);
+        document.getElementById('cut_date_end').value = formatDateForInput(lastDay);
+    });
+
+    // 膜加工日用のボタンイベントハンドラー
+    document.getElementById('today-film-button').addEventListener('click', function() {
+        const today = new Date();
+        document.getElementById('film_proc_date_start').value = formatDateForInput(today);
+        document.getElementById('film_proc_date_end').value = formatDateForInput(today);
+    });
+
+    document.getElementById('yesterday-film-button').addEventListener('click', function() {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        document.getElementById('film_proc_date_start').value = formatDateForInput(yesterday);
+        document.getElementById('film_proc_date_end').value = formatDateForInput(yesterday);
+    });
+
+    document.getElementById('this-month-film-button').addEventListener('click', function() {
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        document.getElementById('film_proc_date_start').value = formatDateForInput(firstDay);
+        document.getElementById('film_proc_date_end').value = formatDateForInput(lastDay);
+    });
+
+    document.getElementById('last-month-film-button').addEventListener('click', function() {
+        const now = new Date();
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1);
+        const firstDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 1);
+        const lastDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0);
+        document.getElementById('film_proc_date_start').value = formatDateForInput(firstDay);
+        document.getElementById('film_proc_date_end').value = formatDateForInput(lastDay);
+    });
+
+});
+</script>
+{% endblock %} 

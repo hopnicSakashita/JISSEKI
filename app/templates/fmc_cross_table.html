@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h2>膜カット合格数クロス集計</h2>
+    
+    <!-- 検索条件 -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">検索条件</h5>
+        </div>
+        <div class="card-body">
+            <form id="searchForm" class="row g-3">
+                <div class="col-md-3">
+                    <label for="cut_date_start" class="form-label">カット日（開始）</label>
+                    <input type="date" class="form-control" id="cut_date_start" name="cut_date_start">
+                </div>
+                <div class="col-md-3">
+                    <label for="cut_date_end" class="form-label">カット日（終了）</label>
+                    <input type="date" class="form-control" id="cut_date_end" name="cut_date_end">
+                </div>
+                <div class="col-md-3">
+                    <label for="monomer" class="form-label">モノマー</label>
+                    <select class="form-control" id="monomer" name="monomer">
+                        <option value="">すべて</option>
+                        {% for kbn_id, kbn_nm in kbn_dict['MMNO'].items() %}
+                        <option value="{{ kbn_id }}">{{ kbn_nm }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="cr_film" class="form-label">CR膜</label>
+                    <select class="form-control" id="cr_film" name="cr_film">
+                        <option value="">すべて</option>
+                        <option value="0">なし</option>
+                        <option value="1">あり</option>
+                        <option value="2">出荷CTあり</option>
+                        <option value="3">出荷CTなし</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">検索</button>
+                    <button type="button" class="btn btn-secondary" id="clearBtn">クリア</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- ローディング表示 -->
+    <div id="loading" class="text-center" style="display: none;">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">読み込み中...</span>
+        </div>
+        <p>データを読み込んでいます...</p>
+    </div>
+    
+    <!-- エラー表示 -->
+    <div id="errorMessage" class="alert alert-danger" style="display: none;"></div>
+    
+    <!-- クロス集計表 -->
+    <div id="crossTableContainer" style="display: none;">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">合格数クロス集計表（色 × 膜カーブ）</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="crossTable" class="table table-bordered table-hover">
+                        <thead class="table-light">
+                            <tr id="headerRow">
+                                <th>色 \ 膜カーブ</th>
+                                <!-- 膜カーブのヘッダーはJavaScriptで動的に追加 -->
+                                <th class="table-warning">合計</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- データ行はJavaScriptで動的に追加 -->
+                        </tbody>
+                        <tfoot class="table-info">
+                            <tr id="footerRow">
+                                <th>合計</th>
+                                <!-- 列合計はJavaScriptで動的に追加 -->
+                                <th id="grandTotal">0</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- データなしメッセージ -->
+    <div id="noDataMessage" class="alert alert-info" style="display: none;">
+        <i class="fas fa-info-circle"></i>
+        指定された条件に該当するデータがありません。
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchForm = document.getElementById('searchForm');
+    const clearBtn = document.getElementById('clearBtn');
+    const loading = document.getElementById('loading');
+    const errorMessage = document.getElementById('errorMessage');
+    const crossTableContainer = document.getElementById('crossTableContainer');
+    const noDataMessage = document.getElementById('noDataMessage');
+    
+    // 検索フォームの送信
+    searchForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        performSearch();
+    });
+    
+    // クリアボタンのクリック
+    clearBtn.addEventListener('click', function() {
+        searchForm.reset();
+        hideAllMessages();
+    });
+    
+    // 検索実行
+    function performSearch() {
+        const formData = new FormData(searchForm);
+        const params = new URLSearchParams();
+        
+        for (let [key, value] of formData.entries()) {
+            if (value.trim()) {
+                params.append(key, value);
+            }
+        }
+        
+        showLoading();
+        
+        fetch(`/api/fmc_cross_table?${params.toString()}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                hideLoading();
+                if (data.error) {
+                    showError(data.error);
+                } else {
+                    displayCrossTable(data);
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showError('データの取得中にエラーが発生しました: ' + error.message);
+            });
+    }
+    
+    // クロス集計表の表示
+    function displayCrossTable(data) {
+        hideAllMessages();
+        
+        if (data.grand_total === 0) {
+            noDataMessage.style.display = 'block';
+            return;
+        }
+        
+        const headerRow = document.getElementById('headerRow');
+        const tableBody = document.getElementById('tableBody');
+        const footerRow = document.getElementById('footerRow');
+        
+        // ヘッダー行をクリア
+        while (headerRow.children.length > 2) {
+            headerRow.removeChild(headerRow.children[headerRow.children.length - 2]);
+        }
+        
+        // 膜カーブのヘッダーを追加
+        data.film_curves.forEach(curve => {
+            const th = document.createElement('th');
+            th.textContent = data.curve_dict[curve] || `膜カーブ${curve}`;
+            th.className = 'text-center';
+            headerRow.insertBefore(th, headerRow.lastElementChild);
+        });
+        
+        // テーブルボディをクリア
+        tableBody.innerHTML = '';
+        
+        // データ行を追加
+        data.colors.forEach(color => {
+            const row = document.createElement('tr');
+            
+            // 色名のセル
+            const colorCell = document.createElement('th');
+            colorCell.textContent = data.color_dict[color] || `色${color}`;
+            colorCell.className = 'table-light';
+            row.appendChild(colorCell);
+            
+            // 各膜カーブの値
+            data.film_curves.forEach(curve => {
+                const cell = document.createElement('td');
+                const value = data.cross_table[color] ? (data.cross_table[color][curve] || 0) : 0;
+                cell.textContent = formatNumber(value);
+                cell.className = 'text-end';
+                if (value > 0) {
+                    cell.classList.add('table-success');
+                }
+                row.appendChild(cell);
+            });
+            
+            // 行合計のセル
+            const totalCell = document.createElement('td');
+            totalCell.textContent = formatNumber(data.color_totals[color] || 0);
+            totalCell.className = 'text-end table-warning fw-bold';
+            row.appendChild(totalCell);
+            
+            tableBody.appendChild(row);
+        });
+        
+        // フッター行をクリア
+        while (footerRow.children.length > 2) {
+            footerRow.removeChild(footerRow.children[footerRow.children.length - 2]);
+        }
+        
+        // 列合計を追加
+        data.film_curves.forEach(curve => {
+            const th = document.createElement('th');
+            th.textContent = formatNumber(data.curve_totals[curve] || 0);
+            th.className = 'text-end';
+            footerRow.insertBefore(th, footerRow.lastElementChild);
+        });
+        
+        // 総合計を更新
+        document.getElementById('grandTotal').textContent = formatNumber(data.grand_total);
+        
+        crossTableContainer.style.display = 'block';
+    }
+    
+    // 数値フォーマット
+    function formatNumber(num) {
+        if (typeof num !== 'number' || isNaN(num)) return '0';
+        return Math.round(num).toLocaleString();
+    }
+    
+    // 日付をYYYY-MM-DD形式にフォーマット
+    function formatDateForInput(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+    
+    // メッセージ表示・非表示制御
+    function showLoading() {
+        hideAllMessages();
+        loading.style.display = 'block';
+    }
+    
+    function hideLoading() {
+        loading.style.display = 'none';
+    }
+    
+    function showError(message) {
+        hideAllMessages();
+        errorMessage.textContent = message;
+        errorMessage.style.display = 'block';
+    }
+    
+    function hideAllMessages() {
+        loading.style.display = 'none';
+        errorMessage.style.display = 'none';
+        crossTableContainer.style.display = 'none';
+        noDataMessage.style.display = 'none';
+    }
+    
+    // 初期表示時のデフォルト日付設定（過去1ヶ月）
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - 1);
+    
+    document.getElementById('cut_date_end').value = formatDateForInput(endDate);
+    document.getElementById('cut_date_start').value = formatDateForInput(startDate);
+});
+</script>
+{% endblock %}
+
+{% block style %}
+<style>
+#crossTable {
+    min-width: 800px;
+}
+
+#crossTable th {
+    position: sticky;
+    top: 0;
+    background-color: #f8f9fa;
+    z-index: 10;
+}
+
+#crossTable tbody th {
+    position: sticky;
+    left: 0;
+    background-color: #f8f9fa;
+    z-index: 5;
+}
+
+#crossTable .table-success {
+    background-color: #d1e7dd !important;
+}
+
+#crossTable .table-warning {
+    background-color: #fff3cd !important;
+}
+
+#crossTable .table-info {
+    background-color: #d1ecf1 !important;
+}
+
+.table-responsive {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+@media (max-width: 768px) {
+    .container-fluid {
+        padding: 0.5rem;
+    }
+    
+    #crossTable {
+        font-size: 0.875rem;
+    }
+}
+</style>
+{% endblock %} 

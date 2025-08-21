@@ -1,0 +1,9 @@
+﻿/* 特記返信データ */
+CREATE TABLE `NANS_DAT` (
+    `NANS_ID` int AUTO_INCREMENT PRIMARY KEY,
+    `NANS_NOTE_ID` int,
+    `NANS_DATE` datetime,
+    `NANS_USER` decimal(4),
+    `NANS_CNTNT` varchar(200),
+    FOREIGN KEY (`NANS_NOTE_ID`) REFERENCES `NOTE_DAT`(`NOTE_ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='特記返信データ';

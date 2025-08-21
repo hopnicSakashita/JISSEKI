@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ハードコートスピンコート（スライド）</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: 'Meiryo', sans-serif;
+            background-color: #f8f9fa;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+        
+        .slide-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 1.5rem;
+            color: #6c757d;
+        }
+        
+        .slide {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        .slide.active {
+            display: flex;
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .slide.prev {
+            transform: translateX(-100%);
+        }
+        
+        .slide-header {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #0d6efd;
+        }
+        
+        .slide-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #0d6efd;
+            text-align: center;
+            padding: 10px 0;
+            margin-bottom: 20px;
+        }
+        
+        .slide-content {
+            display: flex;
+            flex-direction: row;
+            flex: 1;
+            gap: 20px;
+            padding: 0 20px;
+        }
+        
+        .data-column {
+            display: flex;
+            flex-direction: column;
+            flex: 0 0 40%;
+            gap: 20px;
+        }
+        
+        .chart-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .score-section {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+        }
+        
+        .score-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background-color: #fff;
+        }
+        
+        .score-table thead th {
+            background-color: #4a90e2; /* 色を薄く変更 */
+            color: white;
+            padding: 15px;
+            font-size: 2rem;
+            text-align: center;
+        }
+        
+        .score-table tbody th {
+            padding: 10px 15px;
+            font-size: 1rem;
+            text-align: left;
+            background-color: #f8f9fa;
+        }
+        
+        .score-table tbody td {
+            padding: 10px 15px;
+            font-size: 1rem;
+            font-weight: bold;
+            text-align: right;
+        }
+        
+        .tagetspan {
+            font-size: 1.5rem;
+            font-weight: bold;
+            font-style: italic;
+            text-align: right;
+        }
+        
+        .rateSpan {
+            font-size: 1.5rem;
+            font-weight: bold;
+            font-style: italic;
+            text-align: right;
+        }
+
+        .differenceSpan {
+            font-size: 1.5rem;
+            font-weight: bold;
+            font-style: italic;
+            text-align: right;
+        }
+        
+        
+        .text-danger {
+            color: #dc3545 !important;
+        }
+        
+        .text-success {
+            color: #198754 !important;
+        }
+        
+        .defects-section {
+            display: flex;
+            flex-direction: column;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            overflow: auto;
+            flex: 1;
+        }
+        
+        .defects-title {
+            text-align: center;
+            font-size: 1rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            background-color: #4a90e2;  
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .defect-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .defect-table th, .defect-table td {
+            padding: 8px 12px;
+            text-align: left;
+            font-size: 1.2rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .defect-table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        
+        .defect-table td.defect-count {
+            text-align: right;
+            font-weight: bold;
+        }
+        
+        .chart-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+        }
+        
+        .chart-title {
+            text-align: center;
+            font-size: 1rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            background-color: #4a90e2; 
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .chart-content {
+            flex: 1;
+            position: relative;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .pagination-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #dee2e6;
+        }
+        
+        .pagination-dot.active {
+            background-color: #0d6efd;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .footer {
+            text-align: right;
+            font-size: 1.2rem;
+            color: #6c757d;
+            padding: 10px;
+        }
+        
+        #slides-container {
+            position: relative;
+            flex: 1;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .slide-title {
+            font-size: 1rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #0d6efd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* お知らせスライド用のスタイル */
+        .info-slide {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+            padding: 20px;
+            box-sizing: border-box;
+            background-color: #fff;
+        }
+        
+        .info-slide.active {
+            display: flex;
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .info-slide.prev {
+            transform: translateX(-100%);
+        }
+        
+        .info-header {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 30px;
+            color: #0d6efd;
+        }
+        
+        .info-content {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .info-item {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .info-item-header {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #4a90e2;
+            color: #0d6efd;
+        }
+        
+        .info-item-content {
+            font-size: 1.5rem;
+            line-height: 1.6;
+            white-space: pre-line;
+        }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+
+        <div id="slides-container" style="width: 100%; height: 100%;">
+            <!-- スライドはJavaScriptで動的に生成 -->
+        </div>
+        <div class="row">
+            <div class="pagination col-6" id="pagination">
+                <!-- ページネーションはJavaScriptで動的に生成 -->
+            </div>
+            <div class="footer col-6">
+                <div id="current-time"></div>
+                <div id="csv-import-time"></div>
+            </div>
+        </div>
+        
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0 "></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 時計の更新
+            updateClock();
+            setInterval(updateClock, 1000);
+            
+            // 色設定
+            setupColors();
+            
+            // データ取得
+            fetchData();
+        });
+        
+        let currentSlide = 0;
+        let totalSlides = 0;
+        let charts = {};
+        let slideIntervalId = null; // グローバル変数として定義
+        let infoData = null; // お知らせデータを保持
+        let showingInfoSlide = false; // お知らせスライド表示中かどうか
+        
+        // 色設定
+        let colorMap = {};
+        
+        function setupColors() {
+            // base.htmlと同じ色設定
+            colorMap = {
+                total_inject: '#FFB6C1', // パステルピンク
+                roll_miss: '#98FB98', // パステルグリーン
+                leak: '#87CEEB', // パステルブルー
+                film_pull: '#FFC0CB', // パステルピンク
+                crack: '#E0FFFF', // パステルシアン
+                tear: '#FFE4B5', // パステルオレンジ
+                peel: '#E6E6FA', // パステルラベンダー
+                chip: '#FFA07A', // パステルサーモン
+                poly_crk: '#98FF98', // パステルミント
+                mold_scr: '#FFDAB9', // パステルピーチ
+                lens_scr: '#B0E0E6', // パステルスカイブルー
+                r1_bubble: '#FFB6C1', // パステルピンク
+                r2_bubble: '#AFEEEE', // パステルアクア
+                defect: '#FFA07A', // パステルサーモン
+                elution: '#90EE90', // パステルグリーン
+                haze: '#B0C4DE', // パステルブルー
+                curl: '#FFB6C1', // パステルピンク
+                film_float: '#E0FFFF', // パステルシアン
+                r1_defect: '#FFE4B5', // パステルオレンジ
+                film_ng: '#E6E6FA', // パステルラベンダー
+                foreign: '#FFA07A', // パステルサーモン
+                cut_waste: '#98FF98', // パステルミント
+                fiber: '#FFDAB9', // パステルピーチ
+                mold_dirt: '#B0E0E6', // パステルスカイブルー
+                film_dirt: '#FFB6C1', // パステルピンク
+                axis_1st: '#AFEEEE', // パステルアクア
+                stripe_1st: '#FFA07A', // パステルサーモン
+                edge_defect: '#90EE90', // パステルグリーン
+                wash_drop: '#B0C4DE', // パステルブルー
+                unknown: '#FFB6C1', // パステルピンク
+                other_1: '#E0FFFF', // パステルシアン
+                ecc_defect: '#FFE4B5', // パステルオレンジ
+                drop: '#E6E6FA', // パステルラベンダー
+                count_err: '#FFA07A', // パステルサーモン
+                suction: '#98FF98', // パステルミント
+                axis_def: '#FFDAB9', // パステルピーチ
+                color_def: '#B0E0E6', // パステルスカイブルー
+                trans_def: '#FFB6C1', // パステルピンク
+                curve_def: '#AFEEEE', // パステルアクア
+                cen_th_def: '#FFA07A', // パステルサーモン
+                diam_def: '#90EE90', // パステルグリーン
+                r1_th_def: '#B0C4DE' // パステルブルー
+            };
+        }
+        
+        function updateClock() {
+            const now = new Date();
+            const options = { 
+                year: 'numeric', 
+                month: '2-digit', 
+                day: '2-digit', 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit',
+                hour12: false
+            };
+            document.getElementById('current-time').textContent = "現在時刻：" + now.toLocaleString('ja-JP', options);
+        }
+        
+        
+        function fetchData() {
+             // 新しいAPIエンドポイントを使用
+            fetch(`/api/hdc_spc_slide`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`サーバーエラー: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('取得データ:', data); // デバッグ用
+                    
+                    // 既存のチャートを破棄
+                    Object.keys(charts).forEach(key => {
+                        if (charts[key]) {
+                            charts[key].destroy();
+                        }
+                    });
+                    charts = {};
+                    
+                    // お知らせデータを保存
+                    infoData = {
+                        SET_INFO_H1: data.infoData.SET_INFO_H1,
+                        SET_INFO_1: data.infoData.SET_INFO_1,
+                        SET_INFO_H2: data.infoData.SET_INFO_H2,
+                        SET_INFO_2: data.infoData.SET_INFO_2,
+                        SET_INFO_H3: data.infoData.SET_INFO_H3,
+                        SET_INFO_3: data.infoData.SET_INFO_3
+                    };
+                    
+                    // データが空または無効な場合の処理
+                    if (!data || !data.spc_types || Object.keys(data.spc_types).length === 0) {
+                        showNoDataMessage();
+                    } else {
+                        createSlides(data);
+                    }
+
+                    const options = { 
+                        year: 'numeric', 
+                        month: '2-digit', 
+                        day: '2-digit', 
+                        hour: '2-digit', 
+                        minute: '2-digit', 
+                        second: '2-digit',
+                        hour12: false
+                    };
+                    
+                    // データ更新タイマーをリセット（計画的なリロード）
+                    if (window.dataRefreshTimer) {
+                        clearTimeout(window.dataRefreshTimer);
+                    }
+                    
+                    // 種類の数に応じて更新タイミングを計算（各スライド10秒 + 余裕10秒）
+                    const spc_slideCount = data && data.spc_types ? Object.keys(data.spc_types).filter(type => 
+                        data.spc_type_rate && data.spc_type_rate[type] !== undefined && 
+                        data.spc_type_rate[type] > 0
+                    ).length : 0;
+
+                    const hdc_slideCount = data && data.hdc_types ? Object.keys(data.hdc_types).filter(type => 
+                        data.hdc_type_rate && data.hdc_type_rate[type] !== undefined && 
+                        data.hdc_type_rate[type] > 0
+                    ).length : 0;
+
+                    const slideCount = spc_slideCount + hdc_slideCount;
+                    
+                    // 最低60秒、各スライド10秒で計算（全スライドが表示された後に更新）
+                    const refreshTime = 600000;
+                    console.log(`次回データ更新: ${refreshTime/1000}秒後`); // デバッグ用
+                    
+                    window.dataRefreshTimer = setTimeout(() => {
+                        fetchData();
+                    }, refreshTime);
+                })
+                .catch(error => {
+                    console.error('データ取得エラー:', error);
+                    
+                    // 既存のチャートを破棄
+                    Object.keys(charts).forEach(key => {
+                        if (charts[key]) {
+                            charts[key].destroy();
+                        }
+                    });
+                    charts = {};
+                    
+                    // エラー時はメッセージを表示
+                    showNoDataMessage();
+                    
+                    // データ更新タイマーをリセット
+                    if (window.dataRefreshTimer) {
+                        clearTimeout(window.dataRefreshTimer);
+                    }
+                    
+                    // エラー時は60秒後に再試行
+                    window.dataRefreshTimer = setTimeout(() => {
+                        fetchData();
+                    }, 60000);
+                });
+        }
+        
+        function createSlides(data) {
+            const slidesContainer = document.getElementById('slides-container');
+            const pagination = document.getElementById('pagination');
+            
+            // 既存のスライドをクリア
+            slidesContainer.innerHTML = '';
+            pagination.innerHTML = '';
+            
+            // SPCタイプのマッピング
+            const spcTypeMap = {
+                '1': '自社',
+                '2': '他社',
+                '3': 'NEO'
+            };
+
+            // HDCタイプのマッピング
+            const hdcTypeMap = {
+                '1': '1.67BF',
+                '2': '1.60PL',
+                '3': '1.60SF',
+                '4': '1.67SF'
+            };
+
+            // 目標値のマッピング
+            const spcTargetMap = {
+                '1': 73, // 自社
+                '2': 83, // 他社
+                '3': 80  // NEO
+            };
+
+            const hdcTargetMap = {
+                '1': 73, // 1.67BF
+                '2': 83, // 1.60PL
+                '3': 80, // 1.60SF
+                '4': 80  // 1.67SF
+            };
+
+            // 有効な種類のリスト
+            const validSpcTypes = Object.values(data.spc_types).filter((type,index) => 
+                data.spc_type_rate && data.spc_type_rate[type] !== undefined && 
+                data.spc_type_rate[type] > 0
+            ).map(type => `spc_${type}`); // プレフィックスを追加
+
+            const validHdcTypes = Object.values(data.hdc_types).filter((type,index) => 
+                data.hdc_type_rate && data.hdc_type_rate[type] !== undefined && 
+                data.hdc_type_rate[type] > 0
+            ).map(type => `hdc_${type}`); // プレフィックスを追加
+
+            const validTypes = [...validSpcTypes, ...validHdcTypes];
+            
+            console.log('有効な種類:', validTypes); // デバッグ用
+            
+            // スライド数が0の場合はエラーメッセージを表示
+            if (validTypes.length === 0) {
+                showNoDataMessage();
+                return;
+            }
+            
+            // グラフオブジェクトをリセット
+            charts = {};
+            
+            // お知らせスライドを追加するかチェック
+            const hasInfoData = checkInfoData();
+            
+            // 種類別ごとにスライド作成
+            validTypes.forEach((type, index, validTypes) => {
+                // SPCタイプかHDCタイプかを判定
+                const isSpcType = type.startsWith('spc_');
+                
+                // プレフィックスを除去してタイプ番号を取得
+                const typeNumber = type.split('_')[1];
+                
+                // 種類の名前と情報を取得
+                let typeName;
+                let target;
+                let rateInfo;
+                let rateInfoMonth;
+                
+                if (isSpcType) {
+                    typeName = spcTypeMap[typeNumber] || '不明';
+                    target = spcTargetMap[typeNumber] || 0;
+                    rateInfo = data.spc_type_rate[typeNumber];
+                    rateInfoMonth = data.spc_type_rate_month[typeNumber];
+                } else {
+                    typeName = hdcTypeMap[typeNumber] || '不明';
+                    target = hdcTargetMap[typeNumber] || 0;
+                    rateInfo = data.hdc_type_rate[typeNumber];
+                    rateInfoMonth = data.hdc_type_rate_month[typeNumber];
+                }
+
+                // スライド要素作成
+                const slide = document.createElement('div');
+                slide.classList.add('slide');
+                if (index === 0) {
+                    slide.classList.add('active');
+                }
+                slide.id = `slide-${index}`;
+                
+                // スライドタイトル
+                const slideTitle = document.createElement('div');
+                slideTitle.classList.add('slide-title');
+                slideTitle.textContent = isSpcType ? 'スピンコート収率' : 'ハードコート収率';
+                slide.appendChild(slideTitle);
+                
+                // スライドコンテンツ
+                const slideContent = document.createElement('div');
+                slideContent.classList.add('slide-content');
+                
+                // 左カラム（良品率）
+                const dataColumn = document.createElement('div');
+                dataColumn.classList.add('data-column');
+                
+                // 良品率セクション
+                const scoreSection = document.createElement('div');
+                scoreSection.classList.add('score-section');
+                
+                const scoreTable = document.createElement('table');
+                scoreTable.classList.add('score-table');
+                
+                const scoreHead = document.createElement('thead');
+                scoreHead.classList.add('table-primary');
+                const headerRow = document.createElement('tr');
+                const headerCell = document.createElement('th');
+                headerCell.colSpan = 2;
+                headerCell.textContent = typeName;
+
+                headerRow.appendChild(headerCell);
+                scoreHead.appendChild(headerRow);
+                scoreTable.appendChild(scoreHead);
+                
+                const scoreBody = document.createElement('tbody');
+                const tr1 = document.createElement('tr');
+                const td1 = document.createElement('th');
+                td1.textContent = '目標値';
+                tr1.appendChild(td1);
+                const targetCell = document.createElement('td');
+                targetCell.classList.add('text-right');
+                targetCell.classList.add('align-bottom');
+                const tagetspan = document.createElement('span');
+                tagetspan.classList.add('tagetspan');
+                tagetspan.textContent = target ? target.toFixed(1) : '-';
+                targetCell.appendChild(tagetspan);
+                const tapetpacent = document.createElement('span');
+                tapetpacent.textContent = '%';
+                targetCell.appendChild(tapetpacent);
+                tr1.appendChild(targetCell);
+                const tr2 = document.createElement('tr');
+                const td2 = document.createElement('th');
+                td2.textContent = '直近7日分良品率';
+                tr2.appendChild(td2);
+                const tr3 = document.createElement('tr');
+                const td3 = document.createElement('th');
+                td3.textContent = '直近7日分差分';
+                tr3.appendChild(td3);
+                const rateCell = document.createElement('td');
+                rateCell.classList.add('align-bottom');
+                const differenceCell = document.createElement('td');
+                differenceCell.classList.add('align-bottom');
+                if (rateInfo && target) {
+                    const goodRate = parseFloat(rateInfo);
+                    const difference = goodRate - target;
+                    const rateSpan = document.createElement('span');
+                    rateSpan.classList.add('rateSpan');
+                    if (goodRate < target) {
+                        rateSpan.classList.add('text-danger');
+                    } else {
+                        rateSpan.classList.add('text-primary');
+                    }
+                    rateSpan.textContent = goodRate.toFixed(2);
+
+                    rateCell.appendChild(rateSpan);
+                    const ratepacent = document.createElement('span');
+                    ratepacent.textContent = '%';
+                    rateCell.appendChild(ratepacent);
+                    const differenceSpan = document.createElement('span');
+                    differenceSpan.classList.add('differenceSpan');
+                    if (difference < 0) {
+                        differenceSpan.classList.add('text-danger');
+                    } else {
+                        differenceSpan.classList.add('text-primary');
+                    }
+                    const differencepacent = document.createElement('span');
+                    differencepacent.textContent = '%';
+                    differenceSpan.textContent = difference.toFixed(2);
+                    differenceCell.appendChild(differenceSpan);
+                    differenceCell.appendChild(differencepacent);
+
+                } else {
+                    const rateSpan = document.createElement('span');
+                    rateSpan.classList.add('text-right');
+                    rateSpan.textContent = '-';
+                    rateCell.appendChild(rateSpan);
+                    const ratepacent = document.createElement('span');
+                    ratepacent.classList.add('text-right');
+                    ratepacent.textContent = '%';
+                    rateCell.appendChild(ratepacent);
+                    const differenceSpan = document.createElement('span');
+                    differenceSpan.classList.add('text-right');
+                    differenceSpan.textContent = '-';
+                    differenceCell.appendChild(differenceSpan);
+                    const differencepacent = document.createElement('span');
+                    differencepacent.classList.add('text-right');
+                    differencepacent.textContent = '%';
+                    differenceCell.appendChild(differencepacent);
+                }
+                tr2.appendChild(rateCell);
+                tr3.appendChild(differenceCell);
+                scoreBody.appendChild(tr1);
+                scoreBody.appendChild(tr2);
+                scoreBody.appendChild(tr3);
+                const tr22 = document.createElement('tr');
+                const td22 = document.createElement('th');
+                td22.textContent = '今月良品率';
+                tr22.appendChild(td22);
+                const tr32 = document.createElement('tr');
+                const td32 = document.createElement('th');
+                td32.textContent = '今月差分';
+                tr32.appendChild(td32);
+                const rateCell2 = document.createElement('td');
+                rateCell.classList.add('align-bottom');
+                const differenceCell2 = document.createElement('td');
+                differenceCell2.classList.add('align-bottom');
+                if (rateInfoMonth && target) {
+                    const goodRate2 = parseFloat(rateInfoMonth);
+                    const difference2 = goodRate2 - target;
+                    const rateSpan2 = document.createElement('span');
+                    rateSpan2.classList.add('rateSpan');
+                    if (goodRate2 < target) {
+                        rateSpan2.classList.add('text-danger');
+                    } else {
+                        rateSpan2.classList.add('text-primary');
+                    }
+                    rateSpan2.textContent = goodRate2.toFixed(2);
+
+                    rateCell2.appendChild(rateSpan2);
+                    const ratepacent2 = document.createElement('span');
+                    ratepacent2.textContent = '%';
+                    rateCell2.appendChild(ratepacent2);
+                    const differenceSpan2 = document.createElement('span');
+                    differenceSpan2.classList.add('differenceSpan');
+                    if (difference2 < 0) {
+                        differenceSpan2.classList.add('text-danger');
+                    } else {
+                        differenceSpan2.classList.add('text-primary');
+                    }
+                    const differencepacent2 = document.createElement('span');
+                    differencepacent2.textContent = '%';
+                    differenceSpan2.textContent = difference2.toFixed(2);
+                    differenceCell2.appendChild(differenceSpan2);
+                    differenceCell2.appendChild(differencepacent2);
+
+                } else {
+                    const rateSpan2 = document.createElement('span');
+                    rateSpan2.classList.add('text-right');
+                    rateSpan2.textContent = '-';
+                    rateCell2.appendChild(rateSpan2);
+                    const ratepacent2 = document.createElement('span');
+                    ratepacent2.classList.add('text-right');
+                    ratepacent2.textContent = '%';
+                    rateCell2.appendChild(ratepacent2);
+                    const differenceSpan2 = document.createElement('span');
+                    differenceSpan2.classList.add('text-right');
+                    differenceSpan2.textContent = '-';
+                    differenceCell2.appendChild(differenceSpan2);
+                    const differencepacent2 = document.createElement('span');
+                    differencepacent2.classList.add('text-right');
+                    differencepacent2.textContent = '%';
+                    differenceCell2.appendChild(differencepacent2);
+                }
+                tr22.appendChild(rateCell2);
+                tr32.appendChild(differenceCell2);
+                scoreBody.appendChild(tr22);
+                scoreBody.appendChild(tr32);
+                 
+                scoreTable.appendChild(scoreBody);
+                scoreSection.appendChild(scoreTable);
+                dataColumn.appendChild(scoreSection);
+                
+                // 右カラム（グラフ）
+                const chartColumn = document.createElement('div');
+                chartColumn.classList.add('chart-column');
+                
+                const chartContainer = document.createElement('div');
+                chartContainer.classList.add('chart-container');
+                
+                const chartTitle = document.createElement('div');
+                chartTitle.classList.add('chart-title');
+                chartTitle.textContent = '不良率推移';
+                chartContainer.appendChild(chartTitle);
+                
+                const chartContent = document.createElement('div');
+                chartContent.classList.add('chart-content');
+                
+                const canvas = document.createElement('canvas');
+                canvas.id = `defect-chart-${index}`;
+                chartContent.appendChild(canvas);
+                
+                chartContainer.appendChild(chartContent);
+                chartColumn.appendChild(chartContainer);
+                
+                // カラムをスライドに追加
+                slideContent.appendChild(dataColumn);
+                slideContent.appendChild(chartColumn);
+                
+                slide.appendChild(slideContent);
+                slidesContainer.appendChild(slide);
+                
+                // アニメーションを追加
+                slide.style.opacity = 0;
+                setTimeout(() => {
+                    slide.style.transition = 'opacity 0.5s';
+                    slide.style.opacity = 1;
+                }, index * 300); // 各スライドの表示を遅延させる
+                
+                // ページネーションドットを追加
+                const paginationDot = document.createElement('div');
+                paginationDot.classList.add('pagination-dot');
+                if (index === 0) {
+                    paginationDot.classList.add('active');
+                }
+                pagination.appendChild(paginationDot);
+                
+                // チャート描画
+                setTimeout(() => {
+                    if (isSpcType) {
+                        createDefectChart(index, typeNumber, data.spc_type_data[typeNumber], data.spc_defect_labels, data.spc_type_dates[typeNumber], isSpcType);
+                    } else {
+                        createDefectChart(index, typeNumber, data.hdc_type_data[typeNumber], data.hdc_defect_labels, data.hdc_type_dates[typeNumber], isSpcType);
+                    }
+                }, 0);
+            });
+            
+            // お知らせスライドを追加
+            let infoSlideCount = 0;
+            if (hasInfoData) {
+                infoSlideCount = createInfoSlide(validTypes.length);
+                totalSlides = validTypes.length + infoSlideCount;
+            } else {
+                totalSlides = validTypes.length;
+            }
+            
+            currentSlide = 0; // 現在のスライドを初期化
+            showingInfoSlide = false; // 種類スライド表示中
+            
+            // スライドが作成されてから自動切り替えを開始
+            if (slideIntervalId) {
+                clearInterval(slideIntervalId);
+                slideIntervalId = null;
+            }
+            
+            if (totalSlides > 1) {
+                slideIntervalId = setInterval(nextSlide, 10000); // 10秒間隔に変更
+                console.log('スライド自動切替を開始しました'); // デバッグ用
+            }
+        }
+        
+        // お知らせデータが存在するかチェック
+        function checkInfoData() {
+            if (!infoData) return false;
+            
+            // 少なくとも1つのお知らせが設定されているかチェック
+            return (
+                (infoData.SET_INFO_1 && infoData.SET_INFO_1.trim() !== '') ||
+                (infoData.SET_INFO_2 && infoData.SET_INFO_2.trim() !== '') ||
+                (infoData.SET_INFO_3 && infoData.SET_INFO_3.trim() !== '')
+            );
+        }
+        
+        // お知らせスライドの作成
+        function createInfoSlide(index) {
+            const slidesContainer = document.getElementById('slides-container');
+            const pagination = document.getElementById('pagination');
+            let infoSlideCount = 0;
+            
+            // お知らせ項目1
+            if (infoData.SET_INFO_1 && infoData.SET_INFO_1.trim() !== '') {
+                const infoSlide1 = document.createElement('div');
+                infoSlide1.classList.add('info-slide');
+                infoSlide1.id = `slide-${index + infoSlideCount}`;
+                
+                // お知らせヘッダー
+                const infoHeader1 = document.createElement('div');
+                infoHeader1.classList.add('info-header');
+                infoHeader1.textContent = 'お知らせ';
+                infoSlide1.appendChild(infoHeader1);
+                
+                // お知らせコンテンツ
+                const infoContent1 = document.createElement('div');
+                infoContent1.classList.add('info-content');
+                
+                const infoItem1 = document.createElement('div');
+                infoItem1.classList.add('info-item');
+                
+                if (infoData.SET_INFO_H1 && infoData.SET_INFO_H1.trim() !== '') {
+                    const itemHeader1 = document.createElement('div');
+                    itemHeader1.classList.add('info-item-header');
+                    itemHeader1.textContent = infoData.SET_INFO_H1;
+                    infoItem1.appendChild(itemHeader1);
+                }
+                
+                const itemContent1 = document.createElement('div');
+                itemContent1.classList.add('info-item-content');
+                itemContent1.textContent = infoData.SET_INFO_1;
+                infoItem1.appendChild(itemContent1);
+                
+                infoContent1.appendChild(infoItem1);
+                infoSlide1.appendChild(infoContent1);
+                slidesContainer.appendChild(infoSlide1);
+                
+                // ページネーションドットを追加
+                const paginationDot1 = document.createElement('div');
+                paginationDot1.classList.add('pagination-dot');
+                pagination.appendChild(paginationDot1);
+                
+                infoSlideCount++;
+            }
+            
+            // お知らせ項目2
+            if (infoData.SET_INFO_2 && infoData.SET_INFO_2.trim() !== '') {
+                const infoSlide2 = document.createElement('div');
+                infoSlide2.classList.add('info-slide');
+                infoSlide2.id = `slide-${index + infoSlideCount}`;
+                
+                // お知らせヘッダー
+                const infoHeader2 = document.createElement('div');
+                infoHeader2.classList.add('info-header');
+                infoHeader2.textContent = 'お知らせ';
+                infoSlide2.appendChild(infoHeader2);
+                
+                // お知らせコンテンツ
+                const infoContent2 = document.createElement('div');
+                infoContent2.classList.add('info-content');
+                
+                const infoItem2 = document.createElement('div');
+                infoItem2.classList.add('info-item');
+                
+                if (infoData.SET_INFO_H2 && infoData.SET_INFO_H2.trim() !== '') {
+                    const itemHeader2 = document.createElement('div');
+                    itemHeader2.classList.add('info-item-header');
+                    itemHeader2.textContent = infoData.SET_INFO_H2;
+                    infoItem2.appendChild(itemHeader2);
+                }
+                
+                const itemContent2 = document.createElement('div');
+                itemContent2.classList.add('info-item-content');
+                itemContent2.textContent = infoData.SET_INFO_2;
+                infoItem2.appendChild(itemContent2);
+                
+                infoContent2.appendChild(infoItem2);
+                infoSlide2.appendChild(infoContent2);
+                slidesContainer.appendChild(infoSlide2);
+                
+                // ページネーションドットを追加
+                const paginationDot2 = document.createElement('div');
+                paginationDot2.classList.add('pagination-dot');
+                pagination.appendChild(paginationDot2);
+                
+                infoSlideCount++;
+            }
+            
+            // お知らせ項目3
+            if (infoData.SET_INFO_3 && infoData.SET_INFO_3.trim() !== '') {
+                const infoSlide3 = document.createElement('div');
+                infoSlide3.classList.add('info-slide');
+                infoSlide3.id = `slide-${index + infoSlideCount}`;
+                
+                // お知らせヘッダー
+                const infoHeader3 = document.createElement('div');
+                infoHeader3.classList.add('info-header');
+                infoHeader3.textContent = 'お知らせ';
+                infoSlide3.appendChild(infoHeader3);
+                
+                // お知らせコンテンツ
+                const infoContent3 = document.createElement('div');
+                infoContent3.classList.add('info-content');
+                
+                const infoItem3 = document.createElement('div');
+                infoItem3.classList.add('info-item');
+                
+                if (infoData.SET_INFO_H3 && infoData.SET_INFO_H3.trim() !== '') {
+                    const itemHeader3 = document.createElement('div');
+                    itemHeader3.classList.add('info-item-header');
+                    itemHeader3.textContent = infoData.SET_INFO_H3;
+                    infoItem3.appendChild(itemHeader3);
+                }
+                
+                const itemContent3 = document.createElement('div');
+                itemContent3.classList.add('info-item-content');
+                itemContent3.textContent = infoData.SET_INFO_3;
+                infoItem3.appendChild(itemContent3);
+                
+                infoContent3.appendChild(infoItem3);
+                infoSlide3.appendChild(infoContent3);
+                slidesContainer.appendChild(infoSlide3);
+                
+                // ページネーションドットを追加
+                const paginationDot3 = document.createElement('div');
+                paginationDot3.classList.add('pagination-dot');
+                pagination.appendChild(paginationDot3);
+                
+                infoSlideCount++;
+            }
+            
+            return infoSlideCount;
+        }
+        
+        function createDefectChart(index, type, graphData, defectLabels, dates, isSpcType) {
+            const ctx = document.getElementById(`defect-chart-${index}`).getContext('2d');
+            
+            if (!ctx || !graphData || graphData.length === 0) {
+                return;
+            }
+            
+            // データセットの作成
+            const datasets = [];
+            
+            // 有効な不良項目を抽出（データが存在する項目のみ）
+            const validDefectTypes = [];
+            let mainDefectTypes;
+            if (isSpcType) {    
+                mainDefectTypes = [
+                'SPC_PRE_BLK_DUST', 'SPC_PRE_WHT_DUST', 'SPC_PRE_EDGE_FAIL', 'SPC_PRE_COAT_FAIL',
+                'SPC_PRE_DARK_SPOT', 'SPC_PRE_SNAIL', 'SPC_PRE_MIST', 'SPC_PRE_WRINKLE',
+                'SPC_PRE_BRRL_BUB', 'SPC_PRE_STICK', 'SPC_PRE_TRBL_FIL', 'SPC_PRE_BASE_FIL',
+                'SPC_PST_SCRATCH', 'SPC_PST_COAT_FIL', 'SPC_PST_SNAIL', 'SPC_PST_DARK_SPOT',
+                'SPC_PST_WRINKLE', 'SPC_PST_BUBBLE', 'SPC_PST_EDGE_FAIL', 'SPC_PST_WHT_DUST',
+                'SPC_PST_BLK_DUST', 'SPC_PST_STICK', 'SPC_PST_PRM_STICK', 'SPC_PST_BASE_FAIL', 'SPC_PST_OTHERS'
+                ];
+            } else {
+                mainDefectTypes = [
+                    'HDC_PRE_FOREIGN', 'HDC_PRE_DROP', 'HDC_PRE_CHIP', 'HDC_PRE_STREAK', 'HDC_PRE_OTHERS',
+                    'HDC_TRS_BASE_FAIL', 'HDC_TRS_FOREIGN', 'HDC_TRS_INCL', 'HDC_TRS_SCRATCH', 'HDC_TRS_COAT_FAIL',
+                    'HDC_TRS_DROP', 'HDC_TRS_STREAK', 'HDC_TRS_DIRT', 'HDC_TRS_CHIP', 'HDC_PRJ_BASE',
+                    'HDC_PRJ_FOREIGN', 'HDC_PRJ_DUST', 'HDC_PRJ_SCRATCH', 'HDC_PRJ_DROP', 'HDC_PRJ_CHIP', 'HDC_PRJ_STREAK'
+                    ];
+            }
+            
+            mainDefectTypes.forEach(defect_type => {
+                let hasData = false;
+                dates.forEach(date => {
+                    // graphDataが配列でない場合は空配列として扱う
+                    const dailyData = graphData || {};
+                    if (dailyData && 
+                        dailyData[date] && 
+                        dailyData[date]['defect_rates'][defect_type] > 0.01) {
+                        hasData = true;
+                    }
+                });
+                if (hasData) {
+                    validDefectTypes.push(defect_type);
+                }
+            });
+            
+            
+            // 不良項目のデータセットを追加
+            validDefectTypes.forEach((defect_type, index) => {
+                datasets.push({
+                    label: defectLabels[defect_type],
+                    data: dates.map(date => {
+                        // graphDataのdefect_dataから直接データを取得
+                        if (graphData && graphData[date] && 
+                            graphData[date]['defect_rates'][defect_type] !== undefined) {
+                            return graphData[date]['defect_rates'][defect_type];
+                        }
+                        return 0;
+                    }),
+                    backgroundColor: colorMap[defect_type],
+                });
+            });
+            
+            
+            charts[`defect-${index}`] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: dates,
+                    datasets: datasets
+                },
+                plugins: [ChartDataLabels],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                font: {
+                                    size: 8
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        const rate = context.parsed.y;
+                                        label += (rate < 0.01 ? '0.00' : rate.toFixed(2)) + '%';
+                                    }
+                                    return label;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'start',
+                            font: {
+                                size: 12, // 文字サイズを大きく設定
+                                weight: 'bold',
+                                family: 'Meiryo',
+                                color: '#ffffff'
+                            },
+                            formatter: function(value, context) {
+                                return (value < 2 ? '' : (value.toFixed(2) + '%' + '\n' + context.dataset.label));
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            title: {
+                                display: true,
+                                text: '検査日',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            ticks: {
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            stacked: true,
+                            title: {
+                                display: true,
+                                text: '不良率 (%)',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            ticks: {
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function nextSlide() {
+            // スライドが存在しない場合は処理をスキップ
+            if (totalSlides <= 1) {
+                return;
+            }
+            
+            // 次のスライドのインデックスを計算
+            const nextSlideIndex = (currentSlide + 1) % totalSlides;
+            
+            console.log(`スライド切替: ${currentSlide} → ${nextSlideIndex}`); // デバッグ用
+            
+            // 現在のスライド要素の取得
+            const currentSlideElem = document.getElementById(`slide-${currentSlide}`);
+            const paginationDots = document.querySelectorAll('.pagination-dot');
+            
+            // 次のスライド要素の取得
+            const nextSlideElem = document.getElementById(`slide-${nextSlideIndex}`);
+            
+            // 前のスライドのインデックスを計算
+            const prevSlideIndex = (currentSlide - 1 + totalSlides) % totalSlides;
+            const prevSlideElem = document.getElementById(`slide-${prevSlideIndex}`);
+            
+            // お知らせスライドかどうかの判定（IDの先頭が「info」かどうかで判定）
+            const infoSlidesStart = document.querySelectorAll('.slide').length;
+            
+            // お知らせスライドへの切り替えか判定
+            if (nextSlideIndex >= infoSlidesStart) {
+                showingInfoSlide = true;
+                console.log('お知らせスライドを表示');
+            } 
+            // モノマースライドの最初に戻る場合
+            else if (currentSlide >= infoSlidesStart && nextSlideIndex === 0) {
+                showingInfoSlide = false;
+                console.log('モノマースライドに戻る');
+                // グラフの再描画を遅延させる
+                setTimeout(() => {
+                    Object.keys(charts).forEach(key => {
+                        if (charts[key]) {
+                            charts[key].resize();
+                        }
+                    });
+                }, 100);
+            }
+            
+            // アニメーションのためのクラス設定
+            if (currentSlideElem) {
+                currentSlideElem.classList.remove('active');
+                currentSlideElem.classList.add('prev');
+            }
+            
+            if (nextSlideElem) {
+                nextSlideElem.classList.add('active');
+                nextSlideElem.classList.remove('prev');
+                
+                // モノマースライドに切り替わる場合、グラフを再描画
+                if (!showingInfoSlide) {
+                    const chartId = `defect-${nextSlideIndex}`;
+                    if (charts[chartId]) {
+                        setTimeout(() => {
+                            charts[chartId].resize();
+                        }, 500);
+                    }
+                }
+            }
+            
+            if (prevSlideElem) {
+                prevSlideElem.classList.remove('prev');
+            }
+            
+            // ページネーションドットの更新
+            if (paginationDots.length > 0) {
+                paginationDots[currentSlide].classList.remove('active');
+                paginationDots[nextSlideIndex].classList.add('active');
+            }
+            
+            // 現在のスライドインデックスを更新
+            currentSlide = nextSlideIndex;
+            
+            // アニメーション完了後のクリーンアップ
+            setTimeout(() => {
+                if (currentSlideElem) {
+                    currentSlideElem.classList.remove('prev');
+                }
+            }, 500);
+        }
+        
+        // データがない場合にメッセージを表示する関数
+        function showNoDataMessage() {
+            const slidesContainer = document.getElementById('slides-container');
+            const pagination = document.getElementById('pagination');
+            
+            // 既存のスライドをクリア
+            slidesContainer.innerHTML = '';
+            pagination.innerHTML = '';
+            
+            // スライド切り替えタイマーを停止
+            if (slideIntervalId) {
+                clearInterval(slideIntervalId);
+                slideIntervalId = null;
+                console.log('スライド自動切替を停止しました'); // デバッグ用
+            }
+            
+            // データなしメッセージを表示
+            const noDataMsg = document.createElement('div');
+            noDataMsg.classList.add('no-data-message');
+            noDataMsg.textContent = 'データがありません。対象期間内のデータを確認してください。';
+            noDataMsg.style.textAlign = 'center';
+            noDataMsg.style.padding = '50px';
+            noDataMsg.style.fontSize = '18px';
+            noDataMsg.style.color = '#666';
+            slidesContainer.appendChild(noDataMsg);
+        }
+    </script>
+</body>
+</html> 

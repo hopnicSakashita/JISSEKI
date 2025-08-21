@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">モノマー種別実績</h2>
+
+    <!-- 検索フォーム -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-5">
+                    <label for="r1_in_date" class="form-label">R1注入日（開始）</label>
+                    <input type="date" class="form-control" id="r1_in_date" name="r1_in_date" value="{{ request.args.get('r1_in_date', '') }}">
+                    <button id="this-month-button" class="btn btn-info m-1">今月</button>
+                    <button id="last-month-button" class="btn btn-info m-1">前月</button>
+                </div>
+                <div class="col-md-5">
+                    <label for="r1_in_date2" class="form-label">R1注入日（終了）</label>
+                    <input type="date" class="form-control" id="r1_in_date2" name="r1_in_date2" value="{{ request.args.get('r1_in_date2', '') }}">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">検索</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 実績テーブル -->
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th>モノマー種</th>
+                    <th class="text-end">指示数</th>
+                    <th class="text-end">目標数</th>
+                    <th class="text-end">注入数</th>
+                    <th class="text-end">良品数</th>
+                    <th class="text-end">目標率(%)</th>
+                    <th class="text-end">指示良品率(%)</th>
+                    <th class="text-end">注入良品率(%)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for data in achievement_data %}
+                <tr>
+                    <td>{{ data.mono_nm }}</td>
+                    <td class="text-end">{{ "{:,.0f}".format(data.total_sji_qty) }}</td>
+                    <td class="text-end">{{ "{:,.0f}".format(data.target_qty) }}</td>
+                    <td class="text-end">{{ "{:,.0f}".format(data.total_inj_qty) }}</td>
+                    <td class="text-end">{{ "{:,.0f}".format(data.total_gd_qty) }}</td>
+                    <td class="text-end">{{ "{:,.2f}".format(data.mono_target) }}</td>
+                    <td class="text-end">{{ "{:,.2f}".format(data.gd_per_sji) }}</td>
+                    <td class="text-end">{{ "{:,.2f}".format(data.gd_per_inj) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- CSVインポート時刻表示 -->
+    {% if csv_import_time %}
+    <div class="text-end mt-3">
+        <small class="text-muted">実績CSVデータ更新: {{ csv_import_time }}</small>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 
+{% block scripts %}
+<!-- 日付のデフォルト値を設定 -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const r1InDate = document.getElementById('r1_in_date');
+        const r1InDate2 = document.getElementById('r1_in_date2');
+
+        // 日付のデフォルト値を設定
+
+        document.getElementById('this-month-button').addEventListener('click', function(e) {
+            e.preventDefault();
+            const now = new Date();
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            r1InDate.value = formatDateForInput(firstDay);
+            r1InDate2.value = formatDateForInput(lastDay);
+        });
+    
+        document.getElementById('last-month-button').addEventListener('click', function(e) {
+            e.preventDefault();
+            const now = new Date();
+            const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1);
+            const firstDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 1);
+            const lastDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0);
+            r1InDate.value = formatDateForInput(firstDay);
+            r1InDate2.value = formatDateForInput(lastDay);
+        });
+    });
+</script>
+{% endblock %}

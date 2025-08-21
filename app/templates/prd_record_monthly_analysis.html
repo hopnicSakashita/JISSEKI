@@ -1,0 +1,627 @@
+{% extends 'base.html' %}
+
+{% block style %}
+<style>
+    .chart-container {
+        position: relative;
+        height: 400px;
+        width: 100%;
+        margin-bottom: 30px;
+    }
+    .filters {
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    .total-row {
+        background-color: #e9ecef;
+        font-weight: bold;
+    }
+    .defect-summary {
+        margin-top: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    .defect-summary h3 {
+        margin-bottom: 15px;
+    }
+    .defect-summary table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .defect-summary th, .defect-summary td {
+        padding: 8px;
+        text-align: right;
+        border: 1px solid #ddd;
+    }
+    .defect-summary th {
+        background-color: #f2f2f2;
+        text-align: center;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    .period-summary {
+        margin-top: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    .period-summary h3 {
+        margin-bottom: 15px;
+    }
+    .period-summary table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .period-summary th, .period-summary td {
+        padding: 8px;
+        text-align: right;
+        border: 1px solid #ddd;
+    }
+    .period-summary th {
+        background-color: #f2f2f2;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>生産実績不良データ（月別）</h1>
+
+<div class="filters">
+    <h3>フィルター</h3>
+    <div class="row">
+        <div class="col-md-6">
+            <label for="date-from">開始日:</label>
+            <input type="date" id="date-from" class="form-control">
+            <button id="this-year-button" class="btn btn-info m-1">今年</button>
+            <button id="last-year-button" class="btn btn-info m-1">昨年</button>
+            <button id="this-month-button" class="btn btn-info m-1">今月</button>
+            <button id="last-month-button" class="btn btn-info m-1">前月</button>
+        </div>
+        <div class="col-md-6">
+            <label for="date-to">終了日:</label>
+            <input type="date" id="date-to" class="form-control">
+        </div>
+    </div>
+    <div class="row mt-3">
+        <div class="col-md-6">
+            <label for="mono_syu">モノマー種:</label>
+            <select id="mono_syu" class="form-control">
+                <option value="">全て</option>
+                {% for code, info in mono_mst.items() %}
+                <option value="{{ code }}">{{ info.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label for="prd_id">製品ID:</label>
+            <input type="text" id="prd_id" class="form-control">
+        </div>        
+    </div>
+    <div class="row mt-3">
+        <div class="col-md-12">
+            <button id="apply-filters" class="btn btn-primary">適用</button>
+            <button id="reset-filters" class="btn btn-secondary">リセット</button>
+        </div>
+    </div>
+</div>
+
+<!-- 月別不良項目推移グラフ -->
+<div class="chart-container">
+    <canvas id="monthly-defect-chart"></canvas>
+</div>
+
+<!-- 期間合計不良率グラフ -->
+<div class="chart-container">
+    <canvas id="period-total-chart"></canvas>
+</div>
+
+<!-- 月別不良詳細データテーブル -->
+<div class="defect-summary">
+    <h3>月別不良詳細データ</h3>
+    <div class="table-responsive">
+        <table class="table table-bordered" id="monthly-defect-table">
+            <thead class="thead-dark">
+                <tr>
+                    <th>不良項目</th>
+                    <!-- 月が動的に追加される -->
+                </tr>
+            </thead>
+            <tbody>
+                <!-- データはJavaScriptで動的に生成 -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 期間合計データテーブル -->
+<div class="period-summary">
+    <h3>期間合計</h3>
+    <div class="table-responsive">
+        <table class="table table-bordered" id="period-total-table">
+            <thead class="thead-dark">
+                <tr>
+                    <th>不良項目</th>
+                    <th>不良数</th>
+                    <th>不良率</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- データはJavaScriptで動的に生成 -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0 "></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let monthlyChart = null;
+        let periodTotalChart = null;
+
+        setupDateButtons();
+        setupEventListeners();
+        
+        // 初期データ読み込み
+        fetchMonthlyData();
+        
+        function setupDateButtons() {
+            // 今年ボタン
+            document.getElementById('this-year-button').addEventListener('click', function(e) {
+                e.preventDefault();
+                const now = new Date();
+                const startOfYear = new Date(now.getFullYear(), 0, 1);
+                const startOfNextYear = new Date(now.getFullYear() + 1, 0, 0);
+                document.getElementById('date-from').value = formatDateForInput(startOfYear);
+                document.getElementById('date-to').value = formatDateForInput(startOfNextYear);
+            });
+            
+            // 昨年ボタン
+            document.getElementById('last-year-button').addEventListener('click', function(e) {
+                e.preventDefault();
+                const now = new Date();
+                const startOfLastYear = new Date(now.getFullYear() - 1, 0, 1);
+                const startOfThisYear = new Date(now.getFullYear(), 0, 0);
+                document.getElementById('date-from').value = formatDateForInput(startOfLastYear);
+                document.getElementById('date-to').value = formatDateForInput(startOfThisYear);
+            });
+            
+            // 今月ボタン
+            document.getElementById('this-month-button').addEventListener('click', function(e) {
+                e.preventDefault();
+                const now = new Date();
+                const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+                const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                document.getElementById('date-from').value = formatDateForInput(firstDay);
+                document.getElementById('date-to').value = formatDateForInput(lastDay);
+            });
+            
+            // 前月ボタン
+            document.getElementById('last-month-button').addEventListener('click', function(e) {
+                e.preventDefault();
+                const now = new Date();
+                const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1);
+                const firstDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 1);
+                const lastDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0);
+                document.getElementById('date-from').value = formatDateForInput(firstDay);
+                document.getElementById('date-to').value = formatDateForInput(lastDay);
+            });
+        }
+        
+        function setupEventListeners() {
+            document.getElementById('apply-filters').addEventListener('click', function() {
+                fetchMonthlyData();
+            });
+            
+            document.getElementById('reset-filters').addEventListener('click', function() {
+                document.getElementById('date-from').value = '';
+                document.getElementById('date-to').value = '';
+                document.getElementById('mono_syu').value = '';
+                document.getElementById('prd_id').value = '';
+                fetchMonthlyData();
+            });
+        }
+        
+        function fetchMonthlyData() {
+            const dateFrom = document.getElementById('date-from').value;
+            const dateTo = document.getElementById('date-to').value;
+            const monoSyu = document.getElementById('mono_syu').value;
+            const prdId = document.getElementById('prd_id').value;
+            
+            let url = '/api/prd_record_monthly_data?';
+            if (dateFrom) url += `start_date=${encodeURIComponent(dateFrom)}&`;
+            if (dateTo) url += `end_date=${encodeURIComponent(dateTo)}&`;
+            if (monoSyu) url += `mono_syu=${encodeURIComponent(monoSyu)}&`;
+            if (prdId) url += `prd_id=${encodeURIComponent(prdId)}&`;
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    updateMonthlyChart(data);
+                    updatePeriodTotalChart(data);
+                    updateMonthlyTable(data);
+                    updatePeriodTotalTable(data);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+        
+        function updateMonthlyChart(data) {
+            const ctx = document.getElementById('monthly-defect-chart').getContext('2d');
+            
+            if (monthlyChart) {
+                monthlyChart.destroy();
+            }
+            
+            // 不良タイプと色のマッピングを作成
+            const colorMap = {};
+            Object.keys(data.defect_labels).forEach((defect_type, index) => {
+                colorMap[defect_type] = `hsl(${(index*60)%360},70%,70%)`;
+            });
+            
+            // データセットを作成
+            const datasets = [];
+            Object.entries(data.defect_labels).forEach(([defectKey, defectTitle]) => {
+                const defectRates = data.months.map(month => {
+                    return data.defect_data[month] && data.defect_data[month][defectKey] ? 
+                           data.defect_data[month][defectKey].rate : 0;
+                });
+                
+                if (defectRates.some(rate => rate > 0)) {
+                    datasets.push({
+                        label: defectTitle,
+                        data: defectRates,
+                        backgroundColor: colorMap[defectKey],
+                        borderWidth: 1
+                    });
+                }
+            });
+            
+            monthlyChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.months,
+                    datasets: datasets
+                },
+                plugins: [ChartDataLabels],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '月別不良項目推移',
+                            font: { size: 18 }
+                        },
+                        legend: {
+                            position: 'right'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) label += ': ';
+                                    if (context.parsed.y !== null) {
+                                        const rate = context.parsed.y;
+                                        label += (rate < 0.01 ? '0.00' : rate.toFixed(2)) + '%';
+                                    }
+                                    return label;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'start',
+                            font: {
+                                size: 16,
+                                weight: 'bold',
+                                family: 'Meiryo',
+                                color: '#ffffff'
+                            },
+                            formatter: function(value, context) {
+                                return (value < 3 ? '' : (value.toFixed(2) + '%' + '\n' + context.dataset.label));
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            title: {
+                                display: true,
+                                text: '月'
+                            }
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '不良率 (%)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toFixed(2) + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function updatePeriodTotalChart(data) {
+            const ctx = document.getElementById('period-total-chart').getContext('2d');
+            
+            if (periodTotalChart) {
+                periodTotalChart.destroy();
+            }
+            
+            // 期間合計の不良率を計算
+            const periodTotals = {};
+            let totalCnt = 0;
+            
+            // 全月の合計を計算
+            data.months.forEach(month => {
+                if (data.total_data[month]) {
+                    totalCnt += data.total_data[month].total_cnt;
+                }
+            });
+            
+            Object.entries(data.defect_labels).forEach(([defectKey, defectTitle]) => {
+                let totalDefects = 0;
+                data.months.forEach(month => {
+                    if (data.defect_data[month] && data.defect_data[month][defectKey]) {
+                        totalDefects += data.defect_data[month][defectKey].count;
+                    }
+                });
+                
+                if (totalDefects > 0) {
+                    periodTotals[defectTitle] = totalCnt > 0 ? (totalDefects / totalCnt * 100) : 0;
+                }
+            });
+            
+            // 不良率で降順ソート
+            const sortedItems = Object.entries(periodTotals)
+                .sort(([,a], [,b]) => b - a);
+            
+            // 不良タイプと色のマッピングを作成
+            const colorMap = {};
+            Object.keys(data.defect_labels).forEach((defect_type, index) => {
+                colorMap[defect_type] = `hsl(${(index*60)%360},70%,70%)`;
+            });
+            
+            periodTotalChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sortedItems.map(([title]) => title),
+                    datasets: [{
+                        label: '期間合計不良率',
+                        data: sortedItems.map(([, rate]) => rate),
+                        backgroundColor: sortedItems.map(([title], index) => {
+                            // 不良項目名から対応するキーを見つける
+                            const defectKey = Object.keys(data.defect_labels).find(key => 
+                                data.defect_labels[key] === title
+                            );
+                            return colorMap[defectKey] || `hsl(${(index*60)%360},70%,70%)`;
+                        }),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '期間合計不良率（降順）',
+                            font: { size: 18 }
+                        },
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const rate = context.parsed.y;
+                                    return '不良率: ' + (rate < 0.01 ? '0.00' : rate.toFixed(2)) + '%';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: '不良項目'
+                            },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '不良率 (%)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toFixed(2) + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function updateMonthlyTable(data) {
+            const table = document.getElementById('monthly-defect-table');
+            const thead = table.querySelector('thead tr');
+            const tbody = table.querySelector('tbody');
+            
+            // ヘッダーをクリア
+            thead.innerHTML = '<th>不良項目</th>';
+            data.months.forEach(month => {
+                const th = document.createElement('th');
+                th.textContent = month;
+                thead.appendChild(th);
+            });
+            
+            // ボディをクリア
+            tbody.innerHTML = '';
+            
+            // 各不良項目の行を作成
+            Object.entries(data.defect_labels).forEach(([defectKey, defectTitle]) => {
+                const row = document.createElement('tr');
+                
+                // 不良項目名
+                const titleCell = document.createElement('td');
+                titleCell.textContent = defectTitle;
+                titleCell.style.textAlign = 'left';
+                row.appendChild(titleCell);
+                
+                // 各月のデータ
+                data.months.forEach(month => {
+                    const cell = document.createElement('td');
+                    if (data.defect_data[month] && data.defect_data[month][defectKey]) {
+                        const defectInfo = data.defect_data[month][defectKey];
+                        const rate = defectInfo.rate < 0.01 ? '0.00' : defectInfo.rate.toFixed(2);
+                        cell.textContent = `${defectInfo.count} (${rate}%)`;
+                    } else {
+                        cell.textContent = '0 (0.00%)';
+                    }
+                    row.appendChild(cell);
+                });
+                
+                tbody.appendChild(row);
+            });
+            
+            // 合計行を追加
+            const totalRow = document.createElement('tr');
+            totalRow.classList.add('total-row');
+            
+            const totalTitleCell = document.createElement('td');
+            totalTitleCell.textContent = '合計';
+            totalTitleCell.style.textAlign = 'left';
+            totalRow.appendChild(totalTitleCell);
+            
+            data.months.forEach(month => {
+                const cell = document.createElement('td');
+                let totalDefects = 0;
+                let totalCnt = 0;
+                
+                if (data.defect_data[month] && data.total_data[month]) {
+                    totalCnt = data.total_data[month].total_cnt;
+                    Object.keys(data.defect_labels).forEach(defectKey => {
+                        if (data.defect_data[month][defectKey]) {
+                            totalDefects += data.defect_data[month][defectKey].count;
+                        }
+                    });
+                }
+                
+                const totalRate = totalCnt > 0 ? (totalDefects / totalCnt * 100) : 0;
+                const rate = totalRate < 0.01 ? '0.00' : totalRate.toFixed(2);
+                cell.textContent = `${totalDefects} (${rate}%)`;
+                totalRow.appendChild(cell);
+            });
+            
+            tbody.appendChild(totalRow);
+        }
+        
+        function updatePeriodTotalTable(data) {
+            const tbody = document.getElementById('period-total-table').querySelector('tbody');
+            tbody.innerHTML = '';
+            
+            // 期間合計の計算
+            const periodTotals = {};
+            let totalCnt = 0;
+            
+            data.months.forEach(month => {
+                if (data.total_data[month]) {
+                    totalCnt += data.total_data[month].total_cnt;
+                }
+            });
+            
+            Object.entries(data.defect_labels).forEach(([defectKey, defectTitle]) => {
+                let totalDefects = 0;
+                data.months.forEach(month => {
+                    if (data.defect_data[month] && data.defect_data[month][defectKey]) {
+                        totalDefects += data.defect_data[month][defectKey].count;
+                    }
+                });
+                
+                if (totalDefects > 0) {
+                    periodTotals[defectKey] = {
+                        title: defectTitle,
+                        count: totalDefects,
+                        rate: totalCnt > 0 ? (totalDefects / totalCnt * 100) : 0
+                    };
+                }
+            });
+            
+            // 不良率で降順ソート
+            const sortedItems = Object.entries(periodTotals)
+                .sort(([,a], [,b]) => b.rate - a.rate);
+            
+            sortedItems.forEach(([defectKey, defectInfo]) => {
+                const row = document.createElement('tr');
+                
+                const titleCell = document.createElement('td');
+                titleCell.textContent = defectInfo.title;
+                titleCell.style.textAlign = 'left';
+                row.appendChild(titleCell);
+                
+                const countCell = document.createElement('td');
+                countCell.textContent = defectInfo.count;
+                row.appendChild(countCell);
+                
+                const rateCell = document.createElement('td');
+                const rate = defectInfo.rate < 0.01 ? '0.00' : defectInfo.rate.toFixed(2);
+                rateCell.textContent = rate + '%';
+                row.appendChild(rateCell);
+                
+                tbody.appendChild(row);
+            });
+            
+            // 総合計行
+            let grandTotalDefects = 0;
+            sortedItems.forEach(([, defectInfo]) => {
+                grandTotalDefects += defectInfo.count;
+            });
+            
+            if (grandTotalDefects > 0) {
+                const grandTotalRow = document.createElement('tr');
+                grandTotalRow.classList.add('total-row');
+                
+                const titleCell = document.createElement('td');
+                titleCell.textContent = '総合計';
+                titleCell.style.textAlign = 'left';
+                grandTotalRow.appendChild(titleCell);
+                
+                const countCell = document.createElement('td');
+                countCell.textContent = grandTotalDefects;
+                grandTotalRow.appendChild(countCell);
+                
+                const rateCell = document.createElement('td');
+                const grandTotalRate = totalCnt > 0 ? (grandTotalDefects / totalCnt * 100) : 0;
+                const rate = grandTotalRate < 0.01 ? '0.00' : grandTotalRate.toFixed(2);
+                rateCell.textContent = rate + '%';
+                grandTotalRow.appendChild(rateCell);
+                
+                tbody.appendChild(grandTotalRow);
+            }
+        }
+    });
+</script>
+{% endblock %} 

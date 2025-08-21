@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>カラー不良・透過率不良分析（スライド）</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: 'Meiryo', sans-serif;
+            background-color: #f8f9fa;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+        
+        .slide-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .slide {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        .slide.active {
+            display: flex;
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .slide.prev {
+            transform: translateX(-100%);
+        }
+        
+        .slide-header {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #0d6efd;
+        }
+        
+        .slide-content {
+            display: flex;
+            flex-direction: row;
+            flex: 1;
+            gap: 20px;
+        }
+        
+        .data-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .defects-section {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            flex: 1;
+        }
+        
+        .defects-title {
+            text-align: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            background-color: #4a90e2;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .defect-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        
+        .defect-table th, .defect-table td {
+            padding: 12px;
+            font-size: 1.4rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .defect-table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .defect-table td {
+            text-align: center;
+        }
+        
+        .analysis-section {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .analysis-title {
+            text-align: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            background-color: #4a90e2;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .chart-container {
+            flex: 1;
+            min-height: 0;
+            position: relative;
+            margin-bottom: 0;
+        }
+
+        .info-container {
+            margin-bottom: 20px;
+        }
+        
+        .info-slide {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+            padding: 20px;
+            box-sizing: border-box;
+            background-color: #fff;
+        }
+        
+        .info-slide.active {
+            display: flex;
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .info-header {
+            text-align: center;
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 30px;
+            color: #0d6efd;
+        }
+        
+        .info-content {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .info-item {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .info-item-header {
+            font-size: 4rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #4a90e2;
+            color: #0d6efd;
+        }
+        
+        .info-item-content {
+            font-size: 3rem;
+            line-height: 1.6;
+            white-space: pre-line;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .pagination-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #dee2e6;
+            cursor: pointer;
+        }
+        
+        .pagination-dot.active {
+            background-color: #0d6efd;
+        }
+        
+        .footer {
+            text-align: right;
+            font-size: 1.2rem;
+            color: #6c757d;
+            padding: 10px;
+        }
+
+        .score-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 2rem;
+        }
+
+        .score-table th, .score-table td {
+            padding: 10px;
+            text-align: center;
+        }
+        
+        .score-table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+
+        .score-table td {
+            background-color: #fff;
+        }
+        
+        .target {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+
+        .good-rate {
+            font-size: 3rem;
+            font-weight: bold;
+        }
+
+        .diff {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        
+
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <div id="slides-container">
+            <!-- スライドはJavaScriptで動的に生成 -->
+        </div>
+        <div class="row">
+            <div class="pagination col-6" id="pagination">
+                <!-- ページネーションはJavaScriptで動的に生成 -->
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0 "></script>
+    <script>
+        let currentSlide = 0;
+        let totalSlides = 0;
+        let charts = {};
+        let slideIntervalId = null;
+        let infoData = null;
+        let showingInfoSlide = false;
+
+        // 不良項目ごとの固定カラー設定
+        const defectColors = {
+            // 一次検査の不良項目
+            'シワA': { bg: 'rgba(255, 182, 193, 0.7)', border: 'rgba(255, 182, 193, 1)' },      // パステルピンク
+            'シワB': { bg: 'rgba(152, 251, 152, 0.7)', border: 'rgba(152, 251, 152, 1)' },      // パステルグリーン
+            '裂け': { bg: 'rgba(135, 206, 235, 0.7)', border: 'rgba(135, 206, 235, 1)' },       // パステルブルー
+            'ブツ': { bg: 'rgba(230, 230, 250, 0.7)', border: 'rgba(230, 230, 250, 1)' },       // パステルラベンダー
+            '繊維': { bg: 'rgba(255, 218, 185, 0.7)', border: 'rgba(255, 218, 185, 1)' },       // パステルピーチ
+            'キズ': { bg: 'rgba(176, 224, 230, 0.7)', border: 'rgba(176, 224, 230, 1)' },       // パステルスカイブルー
+            '穴': { bg: 'rgba(255, 160, 122, 0.7)', border: 'rgba(255, 160, 122, 1)' },         // パステルサーモン
+            'その他': { bg: 'rgba(221, 160, 221, 0.7)', border: 'rgba(221, 160, 221, 1)' },     // パステルプラム
+
+            // 二次検査の不良項目
+            '色抜け': { bg: 'rgba(176, 196, 222, 0.7)', border: 'rgba(176, 196, 222, 1)' },     // パステルスティールブルー
+            '色ムラ': { bg: 'rgba(255, 255, 176, 0.7)', border: 'rgba(255, 255, 176, 1)' },     // パステルイエロー
+            '染スジ': { bg: 'rgba(175, 238, 238, 0.7)', border: 'rgba(175, 238, 238, 1)' },     // パステルターコイズ
+            '汚れ': { bg: 'rgba(216, 191, 216, 0.7)', border: 'rgba(216, 191, 216, 1)' },       // パステルシスル
+            'その他(二次)': { bg: 'rgba(240, 230, 140, 0.7)', border: 'rgba(240, 230, 140, 1)' } // パステルカーキ
+        };
+
+        // デフォルトカラー（未定義の不良項目用）
+        const defaultColor = { bg: 'rgba(200, 200, 200, 0.7)', border: 'rgba(200, 200, 200, 1)' };
+
+        function getDefectColor(defectType) {
+            return defectColors[defectType] || defaultColor;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateClock();
+            setInterval(updateClock, 1000);
+            fetchData();
+        });
+
+        function updateClock() {
+            const now = new Date();
+            const options = { 
+                year: 'numeric', 
+                month: '2-digit', 
+                day: '2-digit', 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit',
+                hour12: false
+            };
+        }
+
+        async function fetchData() {
+            try {
+                const [defectResponse, analysisResponse, infoResponse] = await Promise.all([
+                    fetch('/api/color_trans_defects_slide'),
+                    fetch('/api/fmp_defect_analysis_slide'),
+                    fetch('/api/info_data')
+                ]);
+
+                const defectData = await defectResponse.json();
+                const analysisData = await analysisResponse.json();
+                const info = await infoResponse.json();
+
+                infoData = info;
+                createSlides(defectData, analysisData);
+
+                // データ更新タイマーの設定
+                if (window.dataRefreshTimer) {
+                    clearTimeout(window.dataRefreshTimer);
+                }
+                window.dataRefreshTimer = setTimeout(fetchData, 600000); // 10分後に更新
+            } catch (error) {
+                console.error('データ取得エラー:', error);
+                showErrorMessage();
+            }
+        }
+
+        function createSlides(defectData, analysisData) {
+            const slidesContainer = document.getElementById('slides-container');
+            const pagination = document.getElementById('pagination');
+            
+            slidesContainer.innerHTML = '';
+            pagination.innerHTML = '';
+
+            if (!defectData.defects || defectData.defects.length === 0) {
+                showErrorMessage();
+                return;
+            }
+
+            // データを7件ずつのグループに分割
+            const chunks = [];
+            for (let i = 0; i < defectData.defects.length; i += 7) {
+                chunks.push(defectData.defects.slice(i, i + 7));
+            }
+
+            // 不良データのスライド作成
+            chunks.forEach((chunk, index) => {
+                const slide = createDefectSlide(chunk, index);
+                slidesContainer.appendChild(slide);
+            });
+
+            // 分析データのスライド作成
+            const analysisSlide = createAnalysisSlide(analysisData, chunks.length);
+            slidesContainer.appendChild(analysisSlide);
+
+            // 推移グラフのスライド作成
+            const trendSlide = createTrendSlide(analysisData, chunks.length + 1);
+            slidesContainer.appendChild(trendSlide);
+
+            // お知らせスライドの作成
+            let infoSlideCount = 0;
+            if (checkInfoData()) {
+                infoSlideCount = createInfoSlides(chunks.length + 2);
+            }
+
+            totalSlides = chunks.length + 2 + infoSlideCount;
+
+            // ページネーションドットの作成
+            for (let i = 0; i < totalSlides; i++) {
+                const dot = document.createElement('div');
+                dot.classList.add('pagination-dot');
+                if (i === 0) dot.classList.add('active');
+                pagination.appendChild(dot);
+            }
+
+            // 最初のスライドをアクティブに
+            const firstSlide = document.querySelector('.slide');
+            if (firstSlide) firstSlide.classList.add('active');
+
+            // スライド自動切り替えの設定
+            if (slideIntervalId) clearInterval(slideIntervalId);
+            if (totalSlides > 1) {
+                slideIntervalId = setInterval(nextSlide, 10000);
+            }
+        }
+
+        function createDefectSlide(defects, index) {
+            const slide = document.createElement('div');
+            slide.classList.add('slide');
+            slide.id = `slide-${index}`;
+
+            const header = document.createElement('div');
+            header.classList.add('slide-header');
+            header.textContent = 'カラー不良・透過率不良一覧';
+            slide.appendChild(header);
+
+            const content = document.createElement('div');
+            content.classList.add('defects-section');
+
+            const table = document.createElement('table');
+            table.classList.add('defect-table');
+            
+            // テーブルヘッダー
+            const thead = document.createElement('thead');
+            thead.innerHTML = `
+                <tr>
+                    <th>R1注入日</th>
+                    <th>検査日</th>
+                    <th>製品名</th>
+                    <th>膜カラー</th>
+                    <th>不良項目</th>
+                    <th>不良数</th>
+                    <th>不良率(%)</th>
+                    <th>備考</th>
+                </tr>
+            `;
+            table.appendChild(thead);
+
+            // テーブルボディ
+            const tbody = document.createElement('tbody');
+            defects.forEach(defect => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${formatDate(defect.r1_in_date)}</td>
+                    <td>${formatDate(defect.check_date)}</td>
+                    <td>${defect.product_name}</td>
+                    <td>${defect.film_color}</td>
+                    <td>${defect.defect_type}</td>
+                    <td>${defect.ng_qty}</td>
+                    <td>${defect.defect_rate ? Number(defect.defect_rate).toFixed(1) : '-'}</td>
+                    <td>${defect.biko}</td>
+                `;
+                tbody.appendChild(row);
+            });
+            table.appendChild(tbody);
+            content.appendChild(table);
+            slide.appendChild(content);
+
+            return slide;
+        }
+
+        function createAnalysisSlide(data, index) {
+            const slide = document.createElement('div');
+            slide.classList.add('slide');
+            slide.id = `slide-${index}`;
+
+            const header = document.createElement('div');
+            header.classList.add('slide-header');
+            header.textContent = '直近10日間の膜加工不良率分析';
+            slide.appendChild(header);
+
+            const content = document.createElement('div');
+            content.classList.add('analysis-section');
+
+            // 基本情報
+            const info = document.createElement('div');
+            info.classList.add('info-container');
+            info.innerHTML = `
+                <div class="row mb-4">
+                    <table class="table table-bordered score-table">
+                        <thead>
+                            <tr>
+                                <th>目標</th>
+                                <th>良品率</th>
+                                <th>差分</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="target">75</span>%</td>
+                                <td><span class="good-rate text-primary">${Number(data.primary_good_rate).toFixed(2)}</span>%</td>
+                                <td><span class="diff text-primary">${(Number(data.primary_good_rate)-75).toFixed(2)}</span>%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            content.appendChild(info);
+
+            // グラフ用のキャンバス
+            const chartContainer = document.createElement('div');
+            chartContainer.classList.add('chart-container');
+            const canvas = document.createElement('canvas');
+            canvas.id = 'analysisChart';
+            chartContainer.appendChild(canvas);
+            content.appendChild(chartContainer);
+
+            slide.appendChild(content);
+
+            // グラフの描画は非同期で行う
+            setTimeout(() => {
+                createAnalysisChart(data);
+            }, 0);
+
+            return slide;
+        }
+
+        function createTrendSlide(data, index) {
+            const slide = document.createElement('div');
+            slide.classList.add('slide');
+            slide.id = `slide-${index}`;
+
+            const header = document.createElement('div');
+            header.classList.add('slide-header');
+            header.textContent = '直近10日間の不良率推移';
+            slide.appendChild(header);
+
+            const content = document.createElement('div');
+            content.classList.add('analysis-section');
+
+            // グラフ用のキャンバス
+            const chartContainer = document.createElement('div');
+            chartContainer.classList.add('chart-container');
+            const canvas = document.createElement('canvas');
+            canvas.id = 'trendChart';
+            chartContainer.appendChild(canvas);
+            content.appendChild(chartContainer);
+
+            slide.appendChild(content);
+
+            // グラフの描画は非同期で行う
+            setTimeout(() => {
+                createTrendChart(data);
+            }, 0);
+
+            return slide;
+        }
+
+        function createAnalysisChart(data) {
+            const ctx = document.getElementById('analysisChart').getContext('2d');
+            
+            // 既存のチャートを破棄
+            if (charts.analysis) {
+                charts.analysis.destroy();
+            }
+
+            const primaryDefects = Object.entries(data.primary_defect_rates || {})
+                .map(([label, value]) => ({
+                    label: label,
+                    value: Number(value),
+                    type: 'primary'
+                }));
+
+            const secondaryDefects = Object.entries(data.secondary_defect_rates || {})
+                .map(([label, value]) => ({
+                    label: label,
+                    value: Number(value),
+                    type: 'secondary'
+                }));
+
+            const allDefects = [...primaryDefects, ...secondaryDefects]
+                .filter(item => item.value > 0)
+                .sort((a, b) => b.value - a.value)
+                .slice(0, 10);
+
+            charts.analysis = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: allDefects.map(d => d.label),
+                    datasets: [{
+                        label: '不良率 (%)',
+                        data: allDefects.map(d => d.value),
+                        backgroundColor: allDefects.map(d => getDefectColor(d.label).bg),
+                        borderColor: allDefects.map(d => getDefectColor(d.label).border),
+                        borderWidth: 1
+                    }]
+                },
+                plugins: [ChartDataLabels],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '主要不良項目',
+                            font: {
+                                size: 18
+                            }
+                        },
+                        legend: {
+                            display: false
+                        },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'start',
+                            font: {
+                                size: 16
+                            },
+                            formatter: function(value, context) {
+                                return (value < 2 ? '' : (value.toFixed(2) + '%'));
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '不良率 (%)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createTrendChart(data) {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            
+            // 既存のチャートを破棄
+            if (charts.trend) {
+                charts.trend.destroy();
+            }
+
+            // 直近5日間のデータを取得
+            const last5Days = data.trend_data || [];
+            const dates = last5Days.map(d => formatDate(d.date));
+            
+            // 不良項目の種類を取得
+            const defectTypes = [...new Set(last5Days.flatMap(d => Object.keys(d.defect_rates)))];
+            
+            // データセットの作成
+            const datasets = defectTypes.map(type => {
+                const color = getDefectColor(type);
+                return {
+                    label: type,
+                    data: last5Days.map(d => d.defect_rates[type] || 0),
+                    backgroundColor: color.bg,
+                    borderColor: color.border,
+                    borderWidth: 1
+                };
+            });
+
+            charts.trend = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: dates,
+                    datasets: datasets
+                },
+                plugins: [ChartDataLabels],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '直近10日間の不良率推移',
+                            font: {
+                                size: 16
+                            }
+                        },
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'start',
+                            font: {
+                                size: 16
+                            },
+                            formatter: function(value, context) {
+                                return (parseFloat(value) < 2 ? '' : (parseFloat(value).toFixed(2) + '%' + '\n' + context.dataset.label));
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            title: {
+                                display: true,
+                                text: '日付'
+                            }
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '不良率 (%)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function checkInfoData() {
+            if (!infoData) return false;
+            return (
+                (infoData.SET_INFO_1 && infoData.SET_INFO_1.trim() !== '') ||
+                (infoData.SET_INFO_2 && infoData.SET_INFO_2.trim() !== '') ||
+                (infoData.SET_INFO_3 && infoData.SET_INFO_3.trim() !== '')
+            );
+        }
+
+        function createInfoSlides(startIndex) {
+            const slidesContainer = document.getElementById('slides-container');
+            let infoSlideCount = 0;
+
+            if (infoData.SET_INFO_1 && infoData.SET_INFO_1.trim() !== '') {
+                const slide = createInfoSlide(
+                    startIndex + infoSlideCount,
+                    infoData.SET_INFO_H1,
+                    infoData.SET_INFO_1
+                );
+                slidesContainer.appendChild(slide);
+                infoSlideCount++;
+            }
+
+            if (infoData.SET_INFO_2 && infoData.SET_INFO_2.trim() !== '') {
+                const slide = createInfoSlide(
+                    startIndex + infoSlideCount,
+                    infoData.SET_INFO_H2,
+                    infoData.SET_INFO_2
+                );
+                slidesContainer.appendChild(slide);
+                infoSlideCount++;
+            }
+
+            if (infoData.SET_INFO_3 && infoData.SET_INFO_3.trim() !== '') {
+                const slide = createInfoSlide(
+                    startIndex + infoSlideCount,
+                    infoData.SET_INFO_H3,
+                    infoData.SET_INFO_3
+                );
+                slidesContainer.appendChild(slide);
+                infoSlideCount++;
+            }
+
+            return infoSlideCount;
+        }
+
+        function createInfoSlide(index, header, content) {
+            const slide = document.createElement('div');
+            slide.classList.add('info-slide');
+            slide.id = `slide-${index}`;
+
+            const headerDiv = document.createElement('div');
+            headerDiv.classList.add('info-header');
+            headerDiv.textContent = 'お知らせ';
+            slide.appendChild(headerDiv);
+
+            const contentDiv = document.createElement('div');
+            contentDiv.classList.add('info-content');
+
+            const item = document.createElement('div');
+            item.classList.add('info-item');
+
+            if (header && header.trim() !== '') {
+                const itemHeader = document.createElement('div');
+                itemHeader.classList.add('info-item-header');
+                itemHeader.textContent = header;
+                item.appendChild(itemHeader);
+            }
+
+            const itemContent = document.createElement('div');
+            itemContent.classList.add('info-item-content');
+            itemContent.textContent = content;
+            item.appendChild(itemContent);
+
+            contentDiv.appendChild(item);
+            slide.appendChild(contentDiv);
+
+            return slide;
+        }
+
+        function nextSlide() {
+            if (totalSlides <= 1) return;
+
+            const nextIndex = (currentSlide + 1) % totalSlides;
+            const currentElement = document.getElementById(`slide-${currentSlide}`);
+            const nextElement = document.getElementById(`slide-${nextIndex}`);
+            const dots = document.querySelectorAll('.pagination-dot');
+
+            if (currentElement) {
+                currentElement.classList.remove('active');
+                currentElement.classList.add('prev');
+            }
+
+            if (nextElement) {
+                nextElement.classList.add('active');
+                nextElement.classList.remove('prev');
+            }
+
+            dots[currentSlide].classList.remove('active');
+            dots[nextIndex].classList.add('active');
+
+            currentSlide = nextIndex;
+
+            setTimeout(() => {
+                if (currentElement) {
+                    currentElement.classList.remove('prev');
+                }
+            }, 500);
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ja-JP');
+        }
+
+        function showErrorMessage() {
+            const slidesContainer = document.getElementById('slides-container');
+            slidesContainer.innerHTML = `
+                <div class="slide active">
+                    <div class="slide-header">エラー</div>
+                    <div class="defects-section">
+                        <p class="text-center">データの取得に失敗しました。</p>
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html> 

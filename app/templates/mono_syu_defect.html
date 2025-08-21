@@ -1,0 +1,636 @@
+{% extends 'base.html' %}
+
+{% block style %}
+<style>
+    .chart-container {
+        position: relative;
+        height: 600px;
+        width: 100%;
+        margin-bottom: 30px;
+    }
+    
+    .table-container {
+        margin-top: 30px;
+        position: relative;
+    }
+    
+    .table-responsive {
+        max-height: 600px;
+        overflow-y: auto;
+        position: relative;
+    }
+    
+    .defect-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .defect-table th, .defect-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: right;
+    }
+    
+    .defect-table thead th {
+        background-color: #f2f2f2;
+        text-align: center;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .defect-table thead th::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        border-bottom: 1px solid #ddd;
+    }
+    
+    .defect-table tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+    
+    .filters {
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    
+    .over-target {
+        color: red;
+        font-weight: bold;
+    }
+    
+    .total-row {
+        background-color: #e9ecef;
+        font-weight: bold;
+    }
+    
+    .target-info {
+        font-size: 0.9em;
+        color: #666;
+    }
+    
+    .period-summary {
+        margin-top: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    
+    .period-summary h3 {
+        margin-bottom: 15px;
+    }
+    
+    .period-summary table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .period-summary th, .period-summary td {
+        padding: 8px;
+        text-align: right;
+        border: 1px solid #ddd;
+    }
+    
+    .period-summary th {
+        background-color: #f2f2f2;
+        text-align: center;
+    }
+    
+    .period-summary .total-row {
+        background-color: #e9ecef;
+        font-weight: bold;
+    }
+
+    .period-summary .over-target {
+        color: red;
+        font-weight: bold;
+    }
+    .table-primary th {
+        border:none;
+        padding: 5px 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>モノマー種別毎の良品率分析</h1>
+
+<div class="filters">
+    <h3>フィルター</h3>
+    <div class="row">
+        <div class="col-md-6">
+            <label for="date-from">R2注入日開始:</label>
+            <input type="date" id="date-from" class="form-control">
+            <label >R2注入日CSVを取り込まないと正しく検索できない可能性があります。</label>
+            <button id="today-button" class="btn btn-info m-1">今日</button>
+            <button id="yesterday-button" class="btn btn-info m-1">昨日</button>
+            <button id="this-month-button" class="btn btn-info m-1">今月</button>
+            <button id="last-month-button" class="btn btn-info m-1">前月</button>
+        </div>
+        <div class="col-md-6">
+            <label for="date-to">R2注入日終了:</label>
+            <input type="date" id="date-to" class="form-control">
+        </div>
+    </div>
+    <div class="row mt-3">
+        <div class="col-md-12">
+            <button id="apply-filters" class="btn btn-primary">適用</button>
+            <button id="reset-filters" class="btn btn-secondary">リセット</button>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3">
+    <h3>期間合計</h3>
+    <div class="row" id="score-table">
+    </div>
+</div>
+
+<div class="table-container">
+    <h3>モノマー種別詳細データ</h3>
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered defect-table" id="mono-syu-table">
+            <thead class="thead-dark">
+                <tr id="table-header">
+                    <th>モノマー種</th>
+                    <th>目標値(%)</th>
+                    <!-- 日付はJavaScriptで動的に追加 -->
+                </tr>
+            </thead>
+            <tbody>
+                <!-- データはJavaScriptで動的に生成 -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="chart-container  mt-3">
+    <canvas id="mono-syu-chart" style="height:500px;"></canvas>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // チャートの初期化
+        let monoSyuChart = null;
+        
+        // データ取得
+        //fetchMonoSyuData();
+        
+        // 日付ボタンのイベントリスナー設定
+        setupDateButtons();
+        
+        // フィルター適用
+        document.getElementById('apply-filters').addEventListener('click', function() {
+            fetchMonoSyuData();
+        });
+        
+        // フィルターリセット
+        document.getElementById('reset-filters').addEventListener('click', function() {
+            document.getElementById('date-from').value = '';
+            document.getElementById('date-to').value = '';
+            fetchMonoSyuData();
+        });
+        
+        function setupDateButtons() {
+            // 今日ボタン
+            document.getElementById('today-button').addEventListener('click', function() {
+                const today = new Date();
+                document.getElementById('date-from').value = formatDateForInput(today);
+                document.getElementById('date-to').value = formatDateForInput(today);
+            });
+            
+            // 昨日ボタン
+            document.getElementById('yesterday-button').addEventListener('click', function() {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                document.getElementById('date-from').value = formatDateForInput(yesterday);
+                document.getElementById('date-to').value = formatDateForInput(yesterday);
+            });
+            
+            document.getElementById('this-month-button').addEventListener('click', function(e) {
+                e.preventDefault();
+                const now = new Date();
+                const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+                const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                document.getElementById('date-from').value = formatDateForInput(firstDay);
+                document.getElementById('date-to').value = formatDateForInput(lastDay);
+            });
+        
+            document.getElementById('last-month-button').addEventListener('click', function(e) {
+                e.preventDefault();
+                const now = new Date();
+                const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1);
+                const firstDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 1);
+                const lastDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0);
+                document.getElementById('date-from').value = formatDateForInput(firstDay);
+                document.getElementById('date-to').value = formatDateForInput(lastDay);
+            });
+        }
+        
+        function fetchMonoSyuData() {
+            // フィルターの値を取得
+            const dateFrom = document.getElementById('date-from').value;
+            const dateTo = document.getElementById('date-to').value;
+
+            // APIリクエストURL作成
+            let url = '/api/mono_syu_defect_data?';
+            if (dateFrom) url += `date_from=${dateFrom}&`;
+            if (dateTo) url += `date_to=${dateTo}`;
+            
+            // APIリクエスト
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    updateChart(data);
+                    updateTable(data);
+                    updateScoreTable(data);
+                    document.getElementById('csv-import-time').textContent = '実績CSVインポート時間: ' + data.csv_import_time;
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                });
+        }
+        
+        function updateChart(data) {
+            // チャートの更新
+            const ctx = document.getElementById('mono-syu-chart').getContext('2d');
+            
+            // 既存のチャートを破棄
+            if (monoSyuChart) {
+                monoSyuChart.destroy();
+            }
+            
+            // モノマー種のマッピング
+            // モノマーマスタからマッピングを取得
+            const monoSyuMap = {};
+            
+            // APIから取得したモノマーマスタデータを使用
+            Object.keys(data.mono_mst).forEach(key => {
+                monoSyuMap[key] = data.mono_mst[key].name;
+            });
+
+            // Unknown（不明）の追加
+            monoSyuMap['Unknown'] = '不明';
+            
+            // データセットのラベルを日本語に変換し、良品率に変換
+            const updatedDatasets = data.datasets.map(dataset => {
+                const typeCode = dataset.label.replace('モノマー種: ', '');
+                const jaLabel = monoSyuMap[typeCode] || '合計';
+                
+                // データポイントを良品率に変換（100% - 不良率）
+                const goodRateData = dataset.data.map(rate => {
+                    // データがnullまたはundefinedの場合はnullを返す
+                    return (rate !== null && rate !== undefined) ? 100 - rate : null;
+                });
+                
+                return {
+                    ...dataset,
+                    label: jaLabel,
+                    data: goodRateData
+                };
+            });
+            
+            // 新しいチャートを作成
+            monoSyuChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels.map(date => {
+                        const d = new Date(date);
+                        const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+                        return `${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')}(${weekdays[d.getDay()]})`
+                    }),
+                    datasets: updatedDatasets
+                },
+                plugins: [ChartDataLabels],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'モノマー種別の良品率推移',
+                            font: {
+                                size: 18
+                            }
+                        },
+                        legend: {
+                            position: 'right',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += context.parsed.y + '%';
+                                    }
+                                    return label;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            anchor: 'start',
+                            align: 'start',
+                            font: {
+                                size: 14
+                            },
+                            formatter: function(value, context) {
+                                return value.toFixed(1) + '%';
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            suggestedMax: 100,
+                            title: {
+                                display: true,
+                                text: '良品率 (%)',
+                                font: {
+                                    size: 16
+                                }
+                            },
+                            ticks: {
+                                font: {
+                                    size: 16
+                                }
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'R2注入日',
+                                font: {
+                                    size: 16
+                                }
+
+                            },
+                            ticks: {
+                                font: {
+                                    size: 16
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function updateTable(data) {
+            // テーブルヘッダー更新
+            const tableHeader = document.getElementById('table-header');
+            // ヘッダーをクリア（モノマー種と目標値の列は残す）
+            while (tableHeader.childElementCount > 2) {
+                tableHeader.removeChild(tableHeader.lastChild);
+            }
+            
+            // 日付をヘッダーに追加
+            data.labels.forEach(date => {
+                const th = document.createElement('th');
+                const dateObj = new Date(date);
+                const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+                const day = dateObj.getDate().toString().padStart(2, '0');
+                th.textContent = `${month}/${day}`;
+                tableHeader.appendChild(th);
+            });
+            
+            // モノマー種のマッピング
+            // モノマーマスタからマッピングを取得
+            const monoSyuMap = {};
+            
+            // APIから取得したモノマーマスタデータを使用
+            Object.keys(data.mono_mst).forEach(key => {
+                monoSyuMap[key] = data.mono_mst[key].name;
+            });
+            
+            // Unknown（不明）の追加
+            monoSyuMap['Unknown'] = '不明';
+
+            // テーブルボディ更新
+            const tableBody = document.getElementById('mono-syu-table').getElementsByTagName('tbody')[0];
+            tableBody.innerHTML = '';
+            
+            // モノマー種別ごとのデータを行として追加
+            data.mono_syu_types.forEach(type => {
+                const row = document.createElement('tr');
+                
+                // モノマー種列
+                const typeCell = document.createElement('td');
+                typeCell.textContent = monoSyuMap[type] || '不明';
+                row.appendChild(typeCell);
+                
+                // 目標値列
+                const targetCell = document.createElement('td');
+                const target = data.mono_mst[type]?.target;
+                targetCell.textContent = target ? target.toFixed(1) : '-';
+                row.appendChild(targetCell);
+                
+                const difference = 0;
+                // 日付ごとの良品率
+                data.labels.forEach(date => {
+                    const cell = document.createElement('td');
+                    if (data.mono_syu_data[type] && data.mono_syu_data[type][date]) {
+                        const defectRate = data.mono_syu_data[type][date].defect_rate;
+                        const goodRate = 100 - defectRate;
+                        cell.textContent = goodRate.toFixed(2) + '%';
+                        
+                        // 目標値超過の場合は赤文字で表示（良品率が目標より低い場合）
+                        if (target && goodRate < (target)) {
+                            cell.classList.add('over-target');
+                        }
+                    } else {
+                        cell.textContent = '-';
+                    }
+                    row.appendChild(cell);
+                });
+                
+                tableBody.appendChild(row);
+            });
+            
+            // 合計行の追加
+            const totalRow = document.createElement('tr');
+            totalRow.classList.add('total-row');
+            
+            // 合計ラベル
+            const totalLabelCell = document.createElement('td');
+            totalLabelCell.textContent = '合計';
+            totalRow.appendChild(totalLabelCell);
+            
+            // 目標値列（合計行は空）
+            const totalTargetCell = document.createElement('td');
+            totalTargetCell.textContent = '-';
+            totalRow.appendChild(totalTargetCell);
+            
+            // 日付ごとの合計良品率
+            data.labels.forEach(date => {
+                const cell = document.createElement('td');
+                const defectRate = data.total_rates[date];
+                if (defectRate !== undefined && defectRate !== null) {
+                    const goodRate = 100 - defectRate;
+                    cell.textContent = goodRate.toFixed(2) + '%';
+                } else {
+                    cell.textContent = '-';
+                }
+                totalRow.appendChild(cell);
+            });
+            
+            tableBody.appendChild(totalRow);
+        }
+
+        function updateScoreTable(data) {
+            
+            const scoreDiv = document.getElementById('score-table');
+            scoreDiv.innerHTML = '';
+            scoreDiv.classList.add('row');
+            
+            // モノマー種のマッピング
+            // モノマーマスタからマッピングを取得
+            const monoSyuMap = {};
+            
+            // APIから取得したモノマーマスタデータを使用
+            Object.keys(data.mono_mst).forEach(key => {
+                monoSyuMap[key] = data.mono_mst[key].name;
+            });
+            
+            // Unknown（不明）の追加
+            monoSyuMap['Unknown'] = '不明';
+            
+            // モノマー種別ごとのデータを行として追加
+            data.mono_syu_types.forEach(type => {
+                const col = document.createElement('div');
+                col.classList.add('col-md-4');
+                //col.classList.add('table-responsive');
+
+                const tableBody = document.createElement('table');
+                tableBody.classList.add('table');
+
+
+                const thead = document.createElement('thead');
+                thead.classList.add('table-primary');
+                const tr1 = document.createElement('tr');
+                const th1 = document.createElement('th');
+                th1.colSpan = 3;
+                th1.textContent = monoSyuMap[type] || '不明';
+                tr1.appendChild(th1);
+                thead.appendChild(tr1);
+                const tbody = document.createElement('tbody');
+                const tr2 = document.createElement('tr');
+                const td1 = document.createElement('td');
+                td1.textContent = '目標値';
+                td1.classList.add('text-left');
+                tr2.appendChild(td1);
+                const td2 = document.createElement('td');
+                td2.textContent = '良品率';
+                td2.classList.add('text-left');
+                tr2.appendChild(td2);
+                const td3 = document.createElement('td');
+                td3.textContent = '差分';
+                td3.classList.add('text-left');
+                tr2.appendChild(td3);
+                tbody.appendChild(tr2);
+                const tr3 = document.createElement('tr');
+                const targetCell = document.createElement('td');
+                targetCell.classList.add('text-right');
+                targetCell.classList.add('align-bottom');
+                const target = data.mono_mst[type]?.target;
+                const tagetspan = document.createElement('span');
+                tagetspan.classList.add('text-right');
+                tagetspan.classList.add('h3');
+                tagetspan.classList.add('font-weight-bold');
+                tagetspan.classList.add('fst-italic');
+                tagetspan.textContent = target ? target.toFixed(1) : '-';
+                targetCell.appendChild(tagetspan);
+                const tapetpacent = document.createElement('span');
+                tapetpacent.classList.add('text-right');
+                tapetpacent.textContent = '%';
+                targetCell.appendChild(tapetpacent);
+                tr3.appendChild(targetCell);
+                const rateCell = document.createElement('td');
+                rateCell.classList.add('text-right');
+                rateCell.classList.add('align-bottom');
+                const differenceCell = document.createElement('td');
+                differenceCell.classList.add('text-right');
+                differenceCell.classList.add('align-bottom');
+                const defectRate = data.period_total_rates[type];
+                if (defectRate !== undefined && defectRate !== null) {
+                    const goodRate = 100 - defectRate;
+                    const difference = goodRate - target;
+                    const rateSpan = document.createElement('span');
+                    rateSpan.classList.add('text-right');
+                    rateSpan.classList.add('h2');
+                    if (goodRate < target) {
+                        rateSpan.classList.add('text-danger');
+                    } else {
+                        rateSpan.classList.add('text-primary');
+                    }
+                    rateSpan.classList.add('font-weight-bold');
+                    rateSpan.classList.add('fst-italic');
+                    rateSpan.textContent = goodRate.toFixed(2);
+
+                    rateCell.appendChild(rateSpan);
+                    const ratepacent = document.createElement('span');
+                    ratepacent.classList.add('text-right');
+                    ratepacent.textContent = '%';
+                    rateCell.appendChild(ratepacent);
+                    const differenceSpan = document.createElement('span');
+                    differenceSpan.classList.add('text-right');
+                    differenceSpan.classList.add('h4');
+                    if (difference < 0) {
+                        differenceSpan.classList.add('text-danger');
+                    } else {
+                        differenceSpan.classList.add('text-primary');
+                    }
+                    differenceSpan.classList.add('font-weight-bold');
+                    const differencepacent = document.createElement('span');
+                    differencepacent.classList.add('text-right');
+                    differencepacent.textContent = '%';
+                    differenceSpan.textContent = difference.toFixed(2);
+                    differenceCell.appendChild(differenceSpan);
+                    differenceCell.appendChild(differencepacent);
+
+                } else {
+                    const rateSpan = document.createElement('span');
+                    rateSpan.classList.add('text-right');
+                    rateSpan.textContent = '-';
+                    rateCell.appendChild(rateSpan);
+                    const ratepacent = document.createElement('span');
+                    ratepacent.classList.add('text-right');
+                    ratepacent.textContent = '%';
+                    rateCell.appendChild(ratepacent);
+                    const differenceSpan = document.createElement('span');
+                    differenceSpan.classList.add('text-right');
+                    differenceSpan.textContent = '-';
+                    differenceCell.appendChild(differenceSpan);
+                    const differencepacent = document.createElement('span');
+                    differencepacent.classList.add('text-right');
+                    differencepacent.textContent = '%';
+                    differenceCell.appendChild(differencepacent);
+                }
+                tr3.appendChild(rateCell);
+                tr3.appendChild(differenceCell);
+                tbody.appendChild(tr3);
+                tableBody.appendChild(thead);
+                tableBody.appendChild(tbody);   
+                
+                col.appendChild(tableBody);
+                scoreDiv.appendChild(col);
+            });
+            
+        }
+        
+    });
+</script>
+{% endblock %} 

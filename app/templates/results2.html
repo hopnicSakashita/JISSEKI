@@ -1,0 +1,414 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="results-container">
+    <h2>検査実績</h2>
+    
+    <!-- 検索フォーム -->
+    <div class="search-form">
+        <form method="GET" action="{{ url_for('main.results2') }}">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="date_from">注入日（開始）:</label>
+                        <input type="date" class="form-control" id="date_from" name="date_from" 
+                               value="{{ request.args.get('date_from', '') }}">
+                    </div>
+                    <button id="today-button" class="btn btn-info m-1">今日</button>
+                    <button id="yesterday-button" class="btn btn-info m-1">昨日</button>
+                    <button id="this-month-button" class="btn btn-info m-1">今月</button>
+                    <button id="last-month-button" class="btn btn-info m-1">前月</button>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="date_to">注入日（終了）:</label>
+                        <input type="date" class="form-control" id="date_to" name="date_to"
+                               value="{{ request.args.get('date_to', '') }}">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="date_from2">検査日（開始）:</label>
+                        <input type="date" class="form-control" id="date_from2" name="date_from2" 
+                               value="{{ request.args.get('date_from2', '') }}">
+                    </div>
+                    <label >検査日CSVを取り込まないと正しく検索できない可能性があります。</label>
+                    <button id="today-button2" class="btn btn-info m-1">今日</button>
+                    <button id="yesterday-button2" class="btn btn-info m-1">昨日</button>
+                    <button id="this-month-button2" class="btn btn-info m-1">今月</button>
+                    <button id="last-month-button2" class="btn btn-info m-1">前月</button>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="date_to2">検査日（終了）:</label>
+                        <input type="date" class="form-control" id="date_to2" name="date_to2"
+                               value="{{ request.args.get('date_to2', '') }}">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="prd_id">製品ID:</label>
+                        <input type="text" class="form-control" id="prd_id" name="prd_id"
+                               value="{{ request.args.get('prd_id', '') }}">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="prd_nm">製品名:</label>
+                        <input type="text" class="form-control" id="prd_nm" name="prd_nm"
+                               value="{{ request.args.get('prd_nm', '') }}" placeholder="部分一致で検索">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="mono_syu">モノマー種:</label>
+                        <select class="form-control" id="mono_syu" name="mono_syu">
+                            <option value="">全て</option>
+                            {% for mono in mono_list %}
+                            <option value="{{ mono.MNO_SYU }}" {% if request.args.get('mono_syu') == mono.MNO_SYU %}selected{% endif %}>
+                                {{ mono.MNO_NM }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="prd_color">膜カラー:</label>
+                        <input type="text" class="form-control" id="prd_color" name="prd_color" value="{{ request.args.get('prd_color', '') }}" placeholder="部分一致で検索">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="film_date_from">膜加工日（開始）:</label>
+                        <input type="date" class="form-control" id="film_date_from" name="film_date_from" 
+                               value="{{ request.args.get('film_date_from', '') }}">
+                    </div>
+                    <button id="today-film-button" class="btn btn-info m-1">今日</button>
+                    <button id="yesterday-film-button" class="btn btn-info m-1">昨日</button>
+                    <button id="this-month-film-button" class="btn btn-info m-1">今月</button>
+                    <button id="last-month-film-button" class="btn btn-info m-1">前月</button>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="film_date_to">膜加工日（終了）:</label>
+                        <input type="date" class="form-control" id="film_date_to" name="film_date_to"
+                               value="{{ request.args.get('film_date_to', '') }}">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="lot_no">ロット番号:</label>
+                        <input type="text" class="form-control" id="lot_no" name="lot_no"
+                               value="{{ request.args.get('lot_no', '') }}" placeholder="部分一致で検索">
+                    </div>
+                </div>
+            <div class="row mt-3">
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">検索</button>
+                    <a href="{{ url_for('main.results2') }}" class="btn btn-secondary">リセット</a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- 検索結果表示 -->
+    {% if request.args.get('date_from') or request.args.get('date_to') or request.args.get('date_from2') or request.args.get('date_to2') or request.args.get('film_date_from') or request.args.get('film_date_to') or request.args.get('prd_id') or request.args.get('prd_nm') or request.args.get('mono_syu') or request.args.get('lot_no') or request.args.get('prd_color') %}
+        {% if performances %}
+        <div class="results-summary mb-3">
+            検索結果: {{ performances|length }}件
+        </div>
+        <div class="search-results mt-4" style="height: 600px; overflow: auto;">
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th class="border">ロット番号</th>
+                        <th class="border">製品名</th>
+                        <th class="border">モノマー種</th>
+                        <th class="border">膜加工日</th>
+                        <th class="border">膜カラー</th>
+                        <th class="border">R1注入日</th>
+                        <th class="border">R1注入者</th>
+                        <th class="border">R1重合槽</th>
+                        <th class="border">R2注入者</th>
+                        <th class="border">R2重合槽</th>
+                        <th class="border">モノマーバッチ</th>
+                        <th class="border">R2注入日時</th>
+                        <th class="border">離型者</th>
+                        <th class="border">検査日</th>
+                        <th class="border">R1注入数</th>
+                        <th class="border">一次検査員</th>
+                        <th class="border">チギレ</th>
+                        <th class="border">ハガレ</th>
+                        <th class="border">カケ</th>
+                        <th class="border">型キズ</th>
+                        <th class="border">レンズキズ</th>
+                        <th class="border">R1泡</th>
+                        <th class="border">R2泡</th>
+                        <th class="border">ブツ</th>
+                        <th class="border">溶出</th>
+                        <th class="border">モヤ</th>
+                        <th class="border">カール</th>
+                        <th class="border">膜浮き</th>
+                        <th class="border">R1不良</th>
+                        <th class="border">膜不良</th>
+                        <th class="border">イブツ</th>
+                        <th class="border">カットくず</th>
+                        <th class="border">センイ</th>
+                        <th class="border">モールド汚れ</th>
+                        <th class="border">膜汚れ</th>
+                        <th class="border">片軸(一次)</th>
+                        <th class="border">脈理(一次)</th>
+                        <th class="border">コバスリ不良</th>
+                        <th class="border">偏心不良(一次)</th>
+                        <th class="border">洗浄落下</th>
+                        <th class="border">不明</th>
+                        <th class="border">その他2</th>
+                        <th class="border">偏心不良</th>
+                        <th class="border">落下</th>
+                        <th class="border">員数違い</th>
+                        <th class="border">その他(一次)</th>
+
+                        <th class="border">二次検査員</th>
+                        <th class="border">ハガレ(二次)</th>
+                        <th class="border">脈理(二次)</th>
+                        <th class="border">吸い込み</th>
+                        <th class="border">型キズ(二次)</th>
+                        <th class="border">膜不良(二次)</th>
+                        <th class="border">ブツ(二次)</th>
+                        <th class="border">その他(二次)</th>
+                        
+                        <th class="border">三次検査員</th>
+                        <th class="border">軸不良</th>
+                        <th class="border">膜浮き(三次)</th>
+                        <th class="border">カラー不良</th>
+                        <th class="border">透過率不良</th>
+                        <th class="border">カーブ不良</th>
+                        <th class="border">中心厚不良</th>
+                        <th class="border">径不良</th>
+                        <th class="border">R1厚み不良</th>
+                        <th class="border">偏心不良(三次)</th>
+                        <th class="border">膜汚れ(三次)</th>
+                        <th class="border">片軸(三次)</th>
+                        <th class="border">その他(三次)</th>
+
+                        <th class="border">A品</th>
+                        <th class="border">B品</th>
+
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in performances %}
+                    <tr>
+                        <td class="border">{{ record.PRR_LOT_NO }}</td>
+                        <td class="border">{{ record.prd_mst.PRD_NM if record.prd_mst else '不明' }}</td>
+                        <td class="border">{{ record.mono_mst.MNO_NM if record.mono_mst else '不明' }}</td>
+                        <td class="border">{{ record.PRR_FILM_DATE.strftime('%Y/%m/%d') if record.PRR_FILM_DATE else '' }}</td>
+                        <td class="border">{{ record.prd_mst.PRD_COLOR if record.prd_mst else '' }}</td>
+                        <td class="border">{{ record.PRR_R1_IN_DATE.strftime('%Y/%m/%d') if record.PRR_R1_IN_DATE else '' }}</td>
+                        <td class="border">{{ (workers | selectattr('WRK_ID', 'equalto', record.PRR_R1_INJECT) | first).WRK_NM if (workers | selectattr('WRK_ID', 'equalto', record.PRR_R1_INJECT) | first) else '不明' }}</td>
+                        <td class="border">{{ record.PRR_R1_TANK if record.PRR_R1_TANK else '' }}</td>
+                        <td class="border">{{ (workers | selectattr('WRK_ID', 'equalto', record.PRR_R2_INJECT) | first).WRK_NM if (workers | selectattr('WRK_ID', 'equalto', record.PRR_R2_INJECT) | first) else '不明' }}</td>
+                        <td class="border">{{ record.PRR_R2_TANK if record.PRR_R2_TANK else '' }}</td>
+                        <td class="border">{{ record.PRR_MONO_BATCH if record.PRR_MONO_BATCH else '' }}</td>
+                        <td class="border">{{ record.PRR_R2_DATETIME.strftime('%Y/%m/%d %H:%M:%S') if record.PRR_R2_DATETIME else '' }}</td>
+                        <td class="border">{{ (workers | selectattr('WRK_ID', 'equalto', record.PRR_RELEASE_BY) | first).WRK_NM if (workers | selectattr('WRK_ID', 'equalto', record.PRR_RELEASE_BY) | first) else '不明' }}</td>
+                        <td class="border">{{ record.PRR_CHK_DT.strftime('%Y/%m/%d') if record.PRR_CHK_DT else '' }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_INJECT_QTY) }}</td>
+                        <td class="border">{{ (workers | selectattr('WRK_ID', 'equalto', record.PRR_CHK1_BY) | first).WRK_NM if (workers | selectattr('WRK_ID', 'equalto', record.PRR_CHK1_BY) | first) else '不明' }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_TEAR) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_PEEL) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_CHIP) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_MOLD_SCR) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_LENS_SCR) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_R1_BUBBLE) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_R2_BUBBLE) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_DEFECT) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_ELUTION) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_HAZE) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_CURL) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_FILM_FLOAT) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_R1_DEFECT) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_FILM_NG) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_FOREIGN) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_CUT_WASTE) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_FIBER) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_MOLD_DIRT) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_FILM_DIRT) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_AXIS_1ST) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_STRIPE_1ST) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_EDGE_DEFECT) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_ECC_1ST) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_WASH_DROP) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_UNKNOWN) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_OTHER_2) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_ECC_DEFECT) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_DROP) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_COUNT_ERR) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_OTHER_1ST) }}</td>
+                        
+                        <td class="border">{{ (workers | selectattr('WRK_ID', 'equalto', record.PRR_CHK2_BY) | first).WRK_NM if (workers | selectattr('WRK_ID', 'equalto', record.PRR_CHK2_BY) | first) else '不明' }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_PEEL_2ND) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_STRIPE_2ND) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_SUCTION) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_MOLD_2ND) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_FILM_2ND) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_DEFECT_2ND) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_OTHER_2ND) }}</td>
+
+                        <td class="border">{{ (workers | selectattr('WRK_ID', 'equalto', record.PRR_CHK3_BY) | first).WRK_NM if (workers | selectattr('WRK_ID', 'equalto', record.PRR_CHK3_BY) | first) else '不明' }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_AXIS_DEF) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_FILM_3RD) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_COLOR_DEF) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_TRANS_DEF) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_CURVE_DEF) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_CEN_TH_DEF) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_DIAM_DEF) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_R1_TH_DEF) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_ECC_3RD) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_EDGE_DEF_3) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_AXIS_3RD) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_OTHER_3RD) }}</td>
+
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_A_GRADE) }}</td>
+                        <td class="text-right border">{{ "{:,}".format(record.PRR_B_GRADE) }}</td>
+
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="no-data mt-4">
+            <p>検索条件に一致するデータがありません。</p>
+        </div>
+        {% endif %}
+    {% else %}
+    <div class="initial-message mt-4">
+        <p>検索条件を入力して「検索」ボタンをクリックしてください。</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .results-table td:first-child {
+        /* 横スクロール時に固定する */
+        position: -webkit-sticky;
+        position: sticky;
+        left: 0;
+      }
+</style>
+{% endblock %} 
+
+{% block scripts %}
+<script>
+    document.getElementById('csv-import-time').textContent = '実績CSVインポート時間: {{ csv_import_time }}';
+    
+    document.getElementById('today-button').addEventListener('click', function(e) {
+        e.preventDefault();
+        const today = new Date();
+        document.getElementById('date_from').value = formatDateForInput(today);
+        document.getElementById('date_to').value = formatDateForInput(today);
+    });
+
+    document.getElementById('yesterday-button').addEventListener('click', function(e) {
+        e.preventDefault();
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        document.getElementById('date_from').value = formatDateForInput(yesterday);
+        document.getElementById('date_to').value = formatDateForInput(yesterday);
+    });
+
+    document.getElementById('this-month-button').addEventListener('click', function(e) {
+        e.preventDefault();
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        document.getElementById('date_from').value = formatDateForInput(firstDay);
+        document.getElementById('date_to').value = formatDateForInput(lastDay);
+    });
+
+    document.getElementById('last-month-button').addEventListener('click', function(e) {
+        e.preventDefault();
+        const now = new Date();
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1);
+        const firstDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 1);
+        const lastDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0);
+        document.getElementById('date_from').value = formatDateForInput(firstDay);
+        document.getElementById('date_to').value = formatDateForInput(lastDay);
+    });
+
+    document.getElementById('today-button2').addEventListener('click', function(e) {
+        e.preventDefault();
+        const today = new Date();
+        document.getElementById('date_from2').value = formatDateForInput(today);
+        document.getElementById('date_to2').value = formatDateForInput(today);
+    });
+
+    document.getElementById('yesterday-button2').addEventListener('click', function(e) {
+        e.preventDefault();
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        document.getElementById('date_from2').value = formatDateForInput(yesterday);
+        document.getElementById('date_to2').value = formatDateForInput(yesterday);
+    });
+
+    document.getElementById('this-month-button2').addEventListener('click', function(e) {
+        e.preventDefault();
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        document.getElementById('date_from2').value = formatDateForInput(firstDay);
+        document.getElementById('date_to2').value = formatDateForInput(lastDay);
+    });
+
+    document.getElementById('last-month-button2').addEventListener('click', function(e) {
+        e.preventDefault(); 
+        const now = new Date();
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1);
+        const firstDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 1);
+        const lastDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0);
+        document.getElementById('date_from2').value = formatDateForInput(firstDay);
+        document.getElementById('date_to2').value = formatDateForInput(lastDay);
+    });
+
+    // 膜加工日用のボタンイベントハンドラー
+    document.getElementById('today-film-button').addEventListener('click', function(e) {
+        e.preventDefault();
+        const today = new Date();
+        document.getElementById('film_date_from').value = formatDateForInput(today);
+        document.getElementById('film_date_to').value = formatDateForInput(today);
+    });
+
+    document.getElementById('yesterday-film-button').addEventListener('click', function(e) {
+        e.preventDefault();
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        document.getElementById('film_date_from').value = formatDateForInput(yesterday);
+        document.getElementById('film_date_to').value = formatDateForInput(yesterday);
+    });
+
+    document.getElementById('this-month-film-button').addEventListener('click', function(e) {
+        e.preventDefault();
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        document.getElementById('film_date_from').value = formatDateForInput(firstDay);
+        document.getElementById('film_date_to').value = formatDateForInput(lastDay);
+    });
+
+    document.getElementById('last-month-film-button').addEventListener('click', function(e) {
+        e.preventDefault();
+        const now = new Date();
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1);
+        const firstDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 1);
+        const lastDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0);
+        document.getElementById('film_date_from').value = formatDateForInput(firstDay);
+        document.getElementById('film_date_to').value = formatDateForInput(lastDay);
+    });
+    
+    
+</script>
+{% endblock %}

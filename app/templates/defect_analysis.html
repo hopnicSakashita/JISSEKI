@@ -1,0 +1,536 @@
+{% extends 'base.html' %}
+
+{% block style %}
+<style>
+    .chart-container {
+        position: relative;
+        height: 600px;
+        width: 100%;
+        margin-bottom: 30px;
+    }
+    
+    .table-container {
+        margin-top: 30px;
+        position: relative;
+    }
+    
+    .table-responsive {
+        max-height: 600px;
+        overflow-y: auto;
+        position: relative;
+    }
+    
+    .defect-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .defect-table th, .defect-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: right;
+    }
+    
+    .defect-table thead th {
+        background-color: #f2f2f2;
+        text-align: center;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .defect-table thead th::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .defect-table tfoot th {
+        position: sticky;
+        bottom: 0;
+        background-color: #e9ecef;
+        z-index: 10;
+        box-shadow: 0 -2px 2px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .defect-table tfoot th::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        border-top: 1px solid #ddd;
+    }
+
+    .defect-table tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+    
+    .filters {
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    
+    .chart-type-selector {
+        margin: 20px 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>不良率分析</h1>
+
+<div class="filters">
+    <h3>フィルター</h3>
+    <div class="row">
+        <div class="col-md-6">
+            <label for="date-from">R1開始日:</label>
+            <input type="date" id="date-from" class="form-control">
+            <button id="today-button" class="btn btn-info m-1">今日</button>
+            <button id="yesterday-button" class="btn btn-info m-1">昨日</button>
+            <button id="this-month-button" class="btn btn-info m-1">今月</button>
+            <button id="last-month-button" class="btn btn-info m-1">前月</button>
+        </div>
+        <div class="col-md-6">
+            <label for="date-to">R1終了日:</label>
+            <input type="date" id="date-to" class="form-control">
+        </div>
+        <div class="col-md-6">
+            <label for="date-from">R2開始日:</label>
+            <input type="date" id="date-from3" class="form-control">
+            <button id="today-button3" class="btn btn-info m-1">今日</button>
+            <button id="yesterday-button3" class="btn btn-info m-1">昨日</button>
+            <button id="this-month-button3" class="btn btn-info m-1">今月</button>
+            <button id="last-month-button3" class="btn btn-info m-1">前月</button>
+        </div>
+        <div class="col-md-6">
+            <label for="date-to3">R2終了日:</label>
+            <input type="date" id="date-to3" class="form-control">
+        </div>
+        <div class="col-md-6">
+            <label for="date-from2">検査開始日:</label>
+            <input type="date" id="date-from2" class="form-control">
+            <label >検査日CSVを取り込まないと正しく検索できない可能性があります。</label>
+            <button id="today-button2" class="btn btn-info m-1">今日</button>
+            <button id="yesterday-button2" class="btn btn-info m-1">昨日</button>
+            <button id="this-month-button2" class="btn btn-info m-1">今月</button>
+            <button id="last-month-button2" class="btn btn-info m-1">前月</button>
+        </div>
+        <div class="col-md-6">
+            <label for="date-to2">検査終了日:</label>
+            <input type="date" id="date-to2" class="form-control">
+        </div>
+        <div class="col-md-6">
+            <label for="prd-id">製品ID:</label>
+            <input type="text" id="prd-id" class="form-control">
+        </div>
+        <div class="col-md-6">
+            <label for="mono-syu">モノマー種:</label>
+            <select id="mono-syu" class="form-control">
+                <option value="">全て</option>
+                <!-- モノマー種別マスタから動的に生成 -->
+                {% for key, mono in mono_mst.items() %}
+                <option value="{{ key }}">{{ mono.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-6 mt-1">
+            <label for="prd-nm">製品名:</label>
+            <select id="prd-nm" class="form-control">
+                <option value="">全て</option>
+                {% for nm in prd_nm %}
+                <option value="{{ nm }}">{{ nm }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-6 mt-1">
+            <label for="prd-color">膜カラー:</label>
+            <select id="prd-color" class="form-control">
+                <option value="">全て</option>
+                <!-- モノマー種別マスタから動的に生成 -->
+                {% for color in prd_color %}
+                <option value="{{ color }}">{{ color }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    <div class="row mt-3">
+        <div class="col-md-12">
+            <button id="apply-filters" class="btn btn-primary">適用</button>
+            <button id="reset-filters" class="btn btn-secondary">リセット</button>
+        </div>
+    </div>
+</div>
+
+<div class="chart-type-selector">
+    <label>グラフタイプ:</label>
+    <select id="chart-type" class="form-control">
+        <option value="bar">棒グラフ</option>
+        <option value="polarArea">レーダーチャート</option>
+    </select>
+</div>
+
+<div class="chart-container">
+    <canvas id="defect-chart" style="height:500px;"></canvas>
+</div>
+
+<div class="table-container">
+    <h3>詳細データ</h3>
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered defect-table" id="defect-table">
+            <thead class="thead-dark">
+                <tr>
+                    <th>不良項目</th>
+                    <th>不良率 (%)</th>
+                    <th>不良数</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- データはJavaScriptで動的に生成 -->
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th>合計注入数</th>
+                    <th id="total-inject" colspan="2"></th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // チャートの初期化
+        let defectChart = null;
+        console.log('DOMContentLoaded');
+        
+        // データ取得
+        fetchDefectData();
+        
+        // フィルター適用
+        document.getElementById('apply-filters').addEventListener('click', function() {
+            fetchDefectData();
+        });
+        
+        // フィルターリセット
+        document.getElementById('reset-filters').addEventListener('click', function() {
+            document.getElementById('date-from').value = '';
+            document.getElementById('date-to').value = '';
+            document.getElementById('prd-id').value = '';
+            document.getElementById('date-from2').value = '';
+            document.getElementById('date-to2').value = '';
+            document.getElementById('mono-syu').value = '';
+            document.getElementById('date-from3').value = '';
+            document.getElementById('date-to3').value = '';
+            document.getElementById('prd-nm').value = '';
+            document.getElementById('prd-color').value = '';
+            fetchDefectData();
+        });
+        
+        // チャートタイプ変更
+        document.getElementById('chart-type').addEventListener('change', function() {
+            if (defectChart) {
+                defectChart.destroy();
+            }
+            fetchDefectData();
+        });
+        
+        function fetchDefectData() {
+            // フィルターの値を取得
+            const dateFrom = document.getElementById('date-from').value;
+            const dateTo = document.getElementById('date-to').value;
+            const prdId = document.getElementById('prd-id').value;
+            const monoSyu = document.getElementById('mono-syu').value;
+            const dateFrom2 = document.getElementById('date-from2').value;
+            const dateTo2 = document.getElementById('date-to2').value;
+            const dateFrom3 = document.getElementById('date-from3').value;
+            const dateTo3 = document.getElementById('date-to3').value;
+            const prdNm = document.getElementById('prd-nm').value;
+            const prdColor = document.getElementById('prd-color').value;
+            // APIリクエストURL作成
+            let url = '/api/defect_data?';
+            if (dateFrom) url += `date_from=${encodeURIComponent(dateFrom)}&`;
+            if (dateTo) url += `date_to=${encodeURIComponent(dateTo)}&`;
+            if (prdId) url += `prd_id=${encodeURIComponent(prdId)}&`;
+            if (monoSyu) url += `mono_syu=${encodeURIComponent(monoSyu)}&`;
+            if (dateFrom2) url += `date_from2=${encodeURIComponent(dateFrom2)}&`;
+            if (dateTo2) url += `date_to2=${encodeURIComponent(dateTo2)}&`;
+            if (dateFrom3) url += `date_from3=${encodeURIComponent(dateFrom3)}&`;
+            if (dateTo3) url += `date_to3=${encodeURIComponent(dateTo3)}&`;
+            if (prdNm) url += `prd_nm=${encodeURIComponent(prdNm)}&`;
+            if (prdColor) url += `prd_color=${encodeURIComponent(prdColor)}`;
+            console.log('Fetching data from:', url);
+            
+            // データ取得
+            fetch(url)
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Received data:', data);
+                    // データが空の場合はグラフとテーブルをクリア
+                    if (!data.data || Object.keys(data.data).length === 0) {
+                        clearChart();
+                        clearTable();
+                        document.getElementById('defect-chart').innerHTML = 
+                            '<div class="alert alert-info">該当するデータがありません。フィルター条件を変更してください。</div>';
+                        return;
+                    }
+                    
+                    const filteredData = Object.fromEntries(
+                        Object.entries(data.data).filter(([key, value]) => value > 0)
+                    );
+                    updateChart({ ...data, data: filteredData });
+                    updateTable({ ...data, data: filteredData });
+                    document.getElementById('csv-import-time').textContent = '実績CSVインポート時間: ' + data.csv_import_time;
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                    // エラーメッセージを画面に表示
+                    clearChart();
+                    clearTable();
+                    document.getElementById('defect-chart').innerHTML = 
+                        `<div class="alert alert-danger">データの取得に失敗しました: ${error.message}</div>`;
+                });
+        }
+        
+        function updateChart(data) {
+            try {
+                // グラフタイプ取得
+                const chartType = document.getElementById('chart-type').value;
+                
+                // データが空の場合の処理
+                if (!data.data || Object.keys(data.data).length === 0) {
+                    document.getElementById('defect-chart').innerHTML = 
+                        '<div class="alert alert-info">表示するデータがありません。フィルター条件を変更してください。</div>';
+                    return;
+                }
+                
+                // データセット作成
+                const values = Object.values(data.data).sort((a, b) => b - a);
+                const labels = Object.keys(data.data).sort((keyA, keyB) => data.data[keyB] - data.data[keyA]).map(key => data.labels[key] || key);
+                const sortedKeys = Object.keys(data.data).sort((keyA, keyB) => data.data[keyB] - data.data[keyA]);
+                const sortedValues = sortedKeys.map(key => data.data[key]);
+                const sortedColors = sortedKeys.map(key => root[key]);
+                
+                // キャンバス取得
+                const ctx = document.getElementById('defect-chart').getContext('2d');
+                
+                // 前回のチャートを破棄
+                if (defectChart) {
+                    defectChart.destroy();
+                }
+                
+                // チャートオプション
+                const options = {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: chartType === 'bar' ? 'top' : 'right',
+                        },
+                        title: {
+                            display: true,
+                            text: '注入数に対する不良率 (%)'
+                        }
+                    }
+                };
+                
+                // チャート作成
+                defectChart = new Chart(ctx, {
+                    type: chartType,
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '不良率 (%)',
+                            data: values,
+                            backgroundColor: sortedColors,
+                            borderColor: chartType === 'bar' ? 'rgba(54, 162, 235, 1)' : sortedColors,
+                            borderWidth: 1,
+                            ticks: {
+                                stepSize: 1 // Y軸のメモリ幅を5に設定
+                            }
+                        }]
+                    },
+                    options: options
+                });
+            } catch (error) {
+                console.error('Error updating chart:', error);
+                document.getElementById('defect-chart').innerHTML = 
+                    `<div class="alert alert-danger">チャートの更新に失敗しました: ${error.message}</div>`;
+            }
+        }
+        
+        function updateTable(data) {
+            const tableBody = document.getElementById('defect-table').querySelector('tbody');
+            const totalInjectEl = document.getElementById('total-inject');
+            
+            // テーブルをクリア
+            tableBody.innerHTML = '';
+            
+            // 合計注入数を表示
+            totalInjectEl.textContent = data.total_inject.toLocaleString();
+            
+            // データを率の降順にソート
+            const sortedData = Object.entries(data.data)
+                .sort((a, b) => b[1] - a[1]);
+            
+            // テーブルにデータを追加
+            for (const [key, value] of sortedData) {
+                if (value === 0) continue;
+                const row = document.createElement('tr');
+                
+                const nameCell = document.createElement('td');
+                nameCell.textContent = data.labels[key];
+                
+                const countCell = document.createElement('td');
+                // 不良数を計算（%からの逆算）
+                const defectCount = Math.round(data.total_inject * value / 100);
+                countCell.textContent = defectCount.toLocaleString();
+                
+                const rateCell = document.createElement('td');
+                rateCell.textContent = value + '%';
+                
+                row.appendChild(nameCell);
+                row.appendChild(rateCell);
+                row.appendChild(countCell);
+                
+                tableBody.appendChild(row);
+            }
+        }
+        
+        function generateColors(count) {
+            const colors = [];
+            for (let i = 0; i < count; i++) {
+                const hue = (i * 137) % 360; // 黄金角で色相を分散
+                colors.push(`hsla(${hue}, 70%, 60%, 0.7)`);
+            }
+            return colors;
+        }
+        
+        // チャートクリア関数を追加
+        function clearChart() {
+            if (defectChart) {
+                defectChart.destroy();
+                defectChart = null;
+            }
+            document.getElementById('defect-chart').innerHTML = '';
+        }
+        
+        // テーブルクリア関数を追加
+        function clearTable() {
+            const tableBody = document.getElementById('defect-table').querySelector('tbody');
+            tableBody.innerHTML = '';
+            const totalInjectEl = document.getElementById('total-inject');
+            if (totalInjectEl) {
+                totalInjectEl.textContent = '0';
+            }
+        }
+    });
+
+    document.getElementById('today-button').addEventListener('click', function() {
+        const today = formatDateForInput(new Date());
+        document.getElementById('date-from').value = today;
+        document.getElementById('date-to').value = today;
+    });
+
+    document.getElementById('yesterday-button').addEventListener('click', function() {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = formatDateForInput(yesterday);
+        document.getElementById('date-from').value = yesterdayStr;
+        document.getElementById('date-to').value = yesterdayStr;
+    });
+
+    document.getElementById('this-month-button').addEventListener('click', function() {
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        document.getElementById('date-from').value = formatDateForInput(firstDay);
+        document.getElementById('date-to').value = formatDateForInput(lastDay);
+    });
+
+    document.getElementById('last-month-button').addEventListener('click', function() {
+        const now = new Date();
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1);
+        const firstDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 1);
+        const lastDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0);
+        document.getElementById('date-from').value = formatDateForInput(firstDay);
+        document.getElementById('date-to').value = formatDateForInput(lastDay);
+    });
+
+    document.getElementById('today-button2').addEventListener('click', function() {
+        const today = formatDateForInput(new Date());
+        document.getElementById('date-from2').value = today;
+        document.getElementById('date-to2').value = today;
+    });
+
+    document.getElementById('yesterday-button2').addEventListener('click', function() {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = formatDateForInput(yesterday);
+        document.getElementById('date-from2').value = yesterdayStr;
+        document.getElementById('date-to2').value = yesterdayStr;
+    });
+
+    document.getElementById('this-month-button2').addEventListener('click', function() {
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        document.getElementById('date-from2').value = formatDateForInput(firstDay);
+        document.getElementById('date-to2').value = formatDateForInput(lastDay);
+    });
+
+    document.getElementById('last-month-button2').addEventListener('click', function() {
+        const now = new Date();
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1);
+        const firstDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 1);
+        const lastDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0);
+        document.getElementById('date-from2').value = formatDateForInput(firstDay);
+        document.getElementById('date-to2').value = formatDateForInput(lastDay);
+    });
+    
+    document.getElementById('today-button3').addEventListener('click', function() {
+        const today = formatDateForInput(new Date());
+        document.getElementById('date-from3').value = today;
+        document.getElementById('date-to3').value = today;
+    });
+
+    document.getElementById('yesterday-button3').addEventListener('click', function() {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = formatDateForInput(yesterday);
+        document.getElementById('date-from3').value = yesterdayStr;
+        document.getElementById('date-to3').value = yesterdayStr;
+    });
+
+    document.getElementById('this-month-button3').addEventListener('click', function() {
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        document.getElementById('date-from3').value = formatDateForInput(firstDay);
+        document.getElementById('date-to3').value = formatDateForInput(lastDay);
+    });
+
+    document.getElementById('last-month-button3').addEventListener('click', function() {
+        const now = new Date();
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1);
+        const firstDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 1);
+        const lastDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0);
+        document.getElementById('date-from3').value = formatDateForInput(firstDay);
+        document.getElementById('date-to3').value = formatDateForInput(lastDay);
+    });
+    
+
+</script>
+{% endblock %} 

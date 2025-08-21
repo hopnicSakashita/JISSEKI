@@ -1,0 +1,146 @@
+====================================================================
+             生産実績管理システム（JISSEKI）画面一覧
+====================================================================
+
+■ 1. 認証・セキュリティ
+┌────────────────────────────────────────────────────┐
+│ 画面名                 │ URL      │ 機能          │ テンプレート   │
+├────────────────────────────────────────────────────┤
+│ ログイン画面           │ /login   │ ユーザー認証  │ login.html     │
+│ ログアウト             │ /logout  │ ログアウト    │ -              │
+└────────────────────────────────────────────────────┘
+
+■ 2. CSVデータ取込
+┌──────────────────────────────────────────────────────────────┐
+│ 画面名                   │ URL           │ 機能                     │ テンプレート      │
+├──────────────────────────────────────────────────────────────┤
+│ 実績CSV取込              │ /upload       │ 生産実績CSVアップロード  │ upload.html       │
+│ 注入日・検査日CSV取込    │ /upload2      │ 注入日・検査日CSV取込    │ upload2.html      │
+│ 指示データCSV取込        │ /upload4      │ 指示データCSV取込        │ upload4.html      │
+│ 膜カットデータCSV取込    │ /upload5      │ 膜カットデータCSV取込    │ upload5.html      │
+│ 膜加工データCSV取込      │ /upload6      │ 膜加工データCSV取込      │ upload6.html      │
+│ スピンコートデータCSV取込│ /import_spc   │ スピンコートデータ取込   │ upload_spc.html   │
+│ ハードコートデータCSV取込│ /import_hdc   │ ハードコートデータ取込   │ upload_hdc.html   │
+│ 製品マスタCSV取込        │ /upload_prd_mst│ 製品マスタCSV取込       │ upload_prd_mst.html│
+└──────────────────────────────────────────────────────────────┘
+
+■ 3. 実績・進捗確認
+┌──────────────────────────────────────────────────────────────┐
+│ 画面名                   │ URL                │ 機能              │ テンプレート           │
+├──────────────────────────────────────────────────────────────┤
+│ R1・R2実績               │ /results           │ R1・R2実績表示    │ results.html           │
+│ 検査実績                 │ /results2          │ 検査実績表示      │ results2.html          │
+│ 進捗状況                 │ /progress          │ 進捗状況確認      │ progress.html          │
+│ 未検査品一覧             │ /inspection_search │ 未検査品一覧      │ inspection_search.html │
+│ アニール未完了一覧       │ /anneal_incomplete │ アニール未完了一覧│ anneal_incomplete.html │
+│ 膜カットデータ一覧       │ /fmc_dat_list      │ 膜カットデータ一覧│ fmc_list.html          │
+│ 膜カット合格数クロス集計 │ /fmc_cross_table   │ 合格数クロス集計  │ fmc_cross_table.html   │
+└──────────────────────────────────────────────────────────────┘
+
+■ 4. 分析画面
+┌────────────────────────────────────────────────────────────────────┐
+│ 画面名                      │ URL                    │ 機能                  │ テンプレート                │
+├────────────────────────────────────────────────────────────────────┤
+│ 不良率分析                  │ /defect_analysis       │ 不良率分析            │ defect_analysis.html        │
+│ モノマー種別毎の良品率分析  │ /mono_syu_defect       │ モノマー種別良品率    │ mono_syu_defect.html        │
+│ モノマー種別不良詳細        │ /mono_syu_defect_detail│ モノマー種別不良詳細  │ mono_syu_defect_detail.html │
+│ 生産実績不良データ（月別）  │ /prd_record_monthly_analysis│ 生産実績月別分析     │ prd_record_monthly_analysis.html│
+│ 不良率上位項目              │ /high_defect_rate      │ 不良率上位項目        │ high_defect_rate.html       │
+│ 不良項目別分析              │ /defect_by_item        │ 不良項目別分析        │ defect_by_item.html         │
+│ モノマー種別達成率          │ /mono_syu_achievement  │ モノマー種別達成率    │ mono_syu_achievement.html   │
+│ モノマー種別検査実績        │ /mono_syu_inspection   │ モノマー種別検査実績  │ mono_syu_inspection.html    │
+│ 膜カット不良率分析          │ /fmc_defect_analysis   │ 膜カット不良率分析    │ fmc_defect_analysis.html    │
+│ 膜カット不良詳細分析        │ /fmc_defect_detail_analysis│ 膜カット不良詳細分析 │ fmc_defect_detail_analysis.html│
+│ 膜カット不良データ（月別）  │ /fmc_defect_monthly_analysis│ 膜カット不良月別分析 │ fmc_defect_monthly_analysis.html│
+│ 膜カット モノマー別集計     │ /fmc_monomer_summary   │ 膜カットモノマー別集計│ fmc_monomer_summary.html    │
+└────────────────────────────────────────────────────────────────────┘
+
+■ 5. スライド（SLD）・設定
+┌────────────────────────────────────────────────────────────────────┐
+│ 画面名                      │ URL                         │ 機能                    │ テンプレート                    │
+├────────────────────────────────────────────────────────────────────┤
+│ 設定                        │ /settings                   │ システム設定            │ settings.html                   │
+│ モノマー種別スライド        │ /mono_syu_slide             │ スライド表示            │ mono_syu_slide.html             │
+│ ハードコートスピンスライド  │ /hdc_spn_slide              │ HDC SPCスライダー       │ hdc_spn_slide.html              │
+│ カラー不良スライド          │ /color_trans_defects_slide  │ 不良分析スライド        │ color_trans_defects_slide.html  │
+└────────────────────────────────────────────────────────────────────┘
+
+■ 6. 石田第一（膜加工関連）
+┌────────────────────────────────────────────────────────────────────┐
+│ 画面名                      │ URL                         │ 機能                    │ テンプレート                    │
+├────────────────────────────────────────────────────────────────────┤
+│ 膜加工データ                │ /fmp_defect_analysis        │ 膜加工データ日別分析    │ fmp_defect_analysis.html        │
+│ 膜加工データ（月別）        │ /fmp_defect_monthly_analysis│ 膜加工データ月別分析    │ fmp_defect_monthly_analysis.html│
+│ 膜加工不良詳細分析          │ /fmp_defect_detail_analysis│ 膜加工不良詳細分析      │ fmp_defect_detail_analysis.html │
+│ カラー不良データ            │ /color_trans_defects        │ カラー不良データ表示    │ color_trans_defects.html        │
+│ カラー不良データ入力        │ /color_trans_defects/input  │ カラー不良データ入力    │ color_trans_defects_input.html  │
+│ 不良分析（スライド）        │ /color_trans_defects_slide  │ 不良分析スライド        │ color_trans_defects_slide.html  │
+└────────────────────────────────────────────────────────────────────┘
+
+■ 7. 石田第二（コート関連）
+┌────────────────────────────────────────────────────────────────────┐
+│ 画面名                      │ URL                         │ 機能                    │ テンプレート                    │
+├────────────────────────────────────────────────────────────────────┤
+│ スピンコート不良率分析      │ /spc_defect_analysis        │ SPC不良率分析           │ spc_defect_analysis.html        │
+│ スピンコート月別分析        │ /spc_defect_monthly_analysis│ SPC月別分析             │ spc_defect_monthly_analysis.html│
+│ スピンコート種類別分析      │ /spc_type_analysis          │ SPC種類別分析           │ spc_type_analysis.html          │
+│ ハードコート不良率分析      │ /hdc_defect_analysis        │ HDC不良率分析           │ hdc_defect_analysis.html        │
+│ ハードコート月別分析        │ /hdc_defect_monthly_analysis│ HDC月別分析             │ hdc_defect_monthly_analysis.html│
+│ ハードコート種類別分析      │ /hdc_type_analysis          │ HDC種類別分析           │ hdc_type_analysis.html          │
+│ ハードコートスピンスライド  │ /hdc_spn_slide              │ HDC SPCスライダー       │ hdc_spn_slide.html              │
+└────────────────────────────────────────────────────────────────────┘
+
+■ 8. マスタ・データ管理
+┌────────────────────────────────────────────────────────────────────┐
+│ 画面名                      │ URL                         │ 機能                    │ テンプレート                    │
+├────────────────────────────────────────────────────────────────────┤
+│ 膜カットデータ新規作成      │ /fmc_dat/create             │ FMCデータ新規作成       │ fmc_edit.html                   │
+│ 膜カットデータ編集          │ /fmc_dat_edit/<int:id>      │ FMCデータ編集          │ fmc_edit.html                   │
+│ 特記事項一覧                │ /note_dat_list              │ 特記事項の一覧表示       │ note_dat_list.html             │
+│ 特記事項詳細                │ /note_dat_detail/<note_id>  │ 特記事項の詳細表示       │ note_dat_detail.html           │
+│ 特記事項新規登録            │ /note_dat_input             │ 特記事項の新規登録       │ note_dat_input.html            │
+│ 特記事項編集                │ /note_dat_edit/<note_id>    │ 特記事項の編集           │ note_dat_edit.html             │
+└────────────────────────────────────────────────────────────────────┘
+
+■ 9. API エンドポイント
+┌─────────────────────────────────────────────────────────────────────────┐
+│ API名                                 │ URL                                    │ 機能                        │
+├─────────────────────────────────────────────────────────────────────────┤
+│ 不良データAPI                         │ /api/defect_data                       │ 不良データ取得              │
+│ モノマー種別不良データAPI             │ /api/mono_syu_defect_data              │ モノマー種別不良データ取得  │
+│ モノマー種別不良詳細API               │ /api/mono_syu_defect_detail_data       │ モノマー種別不良詳細取得    │
+│ 生産実績月別データAPI                 │ /api/prd_record_monthly_data           │ 生産実績月別データ取得      │
+│ 不良項目別データAPI                   │ /api/defect_by_item_data               │ 不良項目別データ取得        │
+│ 不良率上位データAPI                   │ /api/high_defect_rate_data             │ 不良率上位データ取得        │
+│ モノマー種別スライドAPI               │ /api/mono_syu_slide_data               │ スライドデータ取得          │
+│ モノマー種別検査API                   │ /api/mono_syu_inspection               │ 検査データ取得              │
+│ 膜カット不良分析API                   │ /api/fmc_defect_analysis               │ 膜カット不良分析データ取得  │
+│ 膜カット不良詳細API                   │ /api/fmc_defect_detail_data            │ 膜カット不良詳細データ取得  │
+│ 膜カット不良月別API                   │ /api/fmc_defect_monthly_data           │ 膜カット不良月別データ取得  │
+│ 膜カット モノマー別集計API            │ /api/fmc_monomer_summary               │ 膜カットモノマー別集計取得  │
+│ 膜カット合格数クロス集計API           │ /api/fmc_cross_table                   │ 合格数クロス集計データ取得  │
+│ 膜加工不良分析API                     │ /api/fmp_defect_analysis               │ 膜加工不良分析データ取得    │
+│ 膜加工不良詳細API                     │ /api/fmp_defect_detail_data            │ 膜加工不良詳細データ取得    │
+│ 膜加工不良分析スライドAPI             │ /api/fmp_defect_analysis_slide         │ 膜加工スライドデータ取得    │
+│ 膜加工月別データAPI                   │ /api/fmp_defect_monthly_data           │ 膜加工月別データ取得        │
+│ カラー不良データAPI                   │ /api/color_trans_defects               │ カラー不良データ取得        │
+│ カラー不良スライドAPI                 │ /api/color_trans_defects_slide         │ カラー不良スライドデータ取得│
+│ SPC不良詳細API                        │ /api/spc_defect_detail_data            │ SPC不良詳細データ取得       │
+│ SPC種類別分析API                      │ /api/spc_type_analysis_data            │ SPC種類別分析データ取得     │
+│ SPC月別データAPI                      │ /api/spc_defect_monthly_data           │ SPC月別データ取得           │
+│ HDC不良詳細API                        │ /api/hdc_defect_detail_data            │ HDC不良詳細データ取得       │
+│ HDC種類別分析API                      │ /api/hdc_type_analysis_data            │ HDC種類別分析データ取得     │
+│ HDC月別データAPI                      │ /api/hdc_defect_monthly_data           │ HDC月別データ取得           │
+│ HDC SPCスライドAPI                    │ /api/hdc_spc_slide                     │ HDC SPCスライドデータ取得   │
+│ お知らせデータAPI                     │ /api/info_data                         │ お知らせデータ取得          │
+│ 膜カットデータ削除API                 │ /fmc_dat/delete/<int:id>               │ 膜カットデータ削除          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+====================================================================
+                                合計画面数: 57画面
+                                合計API数 : 28API
+====================================================================
+
+作成日: 2025年6月（最終更新: 2025年6月27日）
+システム: 生産実績管理システム（JISSEKI）
+技術スタック: Python Flask + MySQL + JavaScript + HTML/CSS 

@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-edit"></i> 
+                        {% if is_create %}モノマーマスタ新規作成{% else %}モノマーマスタ編集{% endif %}
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        {{ form.csrf_token }}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    {{ form.MNO_SYU.label(class="form-label") }}
+                                    {{ form.MNO_SYU(class="form-control") }}
+                                    {% if form.MNO_SYU.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.MNO_SYU.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    {{ form.MNO_NM.label(class="form-label") }}
+                                    {{ form.MNO_NM(class="form-control") }}
+                                    {% if form.MNO_NM.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.MNO_NM.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    {{ form.MNO_TARGET.label(class="form-label") }}
+                                    {{ form.MNO_TARGET(class="form-control") }}
+                                    {% if form.MNO_TARGET.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.MNO_TARGET.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- ボタン -->
+                        <div class="form-group d-flex justify-content-between">
+                            <a href="{{ url_for('master.mno_mst_list') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> 戻る
+                            </a>
+                            <div>
+                                {{ form.submit(class="btn btn-primary") }}
+                                {% if not is_create %}
+                                <button type="button" class="btn btn-danger" onclick="confirmDelete()">削除</button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete() {
+    if (confirm('このデータを削除してもよろしいですか？\n削除後は元に戻すことができません。')) {
+        const deleteForm = document.createElement('form');
+        deleteForm.method = 'POST';
+        deleteForm.action = window.location.href;
+        
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrf_token';
+        csrfInput.value = csrfToken;
+        deleteForm.appendChild(csrfInput);
+        
+        const deleteAction = document.createElement('input');
+        deleteAction.type = 'hidden';
+        deleteAction.name = 'action';
+        deleteAction.value = 'delete';
+        deleteForm.appendChild(deleteAction);
+        
+        document.body.appendChild(deleteForm);
+        deleteForm.submit();
+    }
+}
+</script>
+{% endblock %} 

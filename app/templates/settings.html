@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{{ title }}</h2>
+        
+    <form method="POST" class="mt-4">
+        {{ form.csrf_token }}
+        
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group mb-3">
+                    {{ form.SET_INFO_H1.label(class="form-label") }}
+                    {{ form.SET_INFO_H1(class="form-control") }}
+                    {% if form.SET_INFO_H1.errors %}
+                        {% for error in form.SET_INFO_H1.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                
+                <div class="form-group mb-3">
+                    {{ form.SET_INFO_1.label(class="form-label") }}
+                    {{ form.SET_INFO_1(class="form-control", rows=5) }}
+                    {% if form.SET_INFO_1.errors %}
+                        {% for error in form.SET_INFO_1.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                
+                <div class="form-group mb-3">
+                    {{ form.SET_INFO_H2.label(class="form-label") }}
+                    {{ form.SET_INFO_H2(class="form-control") }}
+                    {% if form.SET_INFO_H2.errors %}
+                        {% for error in form.SET_INFO_H2.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                
+                <div class="form-group mb-3">
+                    {{ form.SET_INFO_2.label(class="form-label") }}
+                    {{ form.SET_INFO_2(class="form-control", rows=5) }}
+                    {% if form.SET_INFO_2.errors %}
+                        {% for error in form.SET_INFO_2.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                
+                <div class="form-group mb-3">
+                    {{ form.SET_INFO_H3.label(class="form-label") }}
+                    {{ form.SET_INFO_H3(class="form-control") }}
+                    {% if form.SET_INFO_H3.errors %}
+                        {% for error in form.SET_INFO_H3.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                
+                <div class="form-group mb-3">
+                    {{ form.SET_INFO_3.label(class="form-label") }}
+                    {{ form.SET_INFO_3(class="form-control", rows=5) }}
+                    {% if form.SET_INFO_3.errors %}
+                        {% for error in form.SET_INFO_3.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group mt-4">
+            <button type="submit" class="btn btn-primary">更新</button>
+        </div>
+    </form>
+</div>
+{% endblock %} 

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>未検査品一覧</h2>
+    
+    {% if incomplete_inspections %}
+    <div class="mt-4">
+        <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+            <table class="table table-striped table-bordered results-table">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>R1注入日</th>
+                        <th>離型日</th>
+                        <th>ロットNo.</th>
+                        <th>製品名</th>
+                        <th>膜カラー</th>
+                        <th>アニール</th>
+                        <th>一次</th>
+                        <th>二次</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in incomplete_inspections %}
+                    <tr>
+                        <td>{{ record.PRR_R1_IN_DATE.strftime('%Y-%m-%d (%a)').replace('Mon', '月').replace('Tue', '火').replace('Wed', '水').replace('Thu', '木').replace('Fri', '金').replace('Sat', '土').replace('Sun', '日') if record.PRR_R1_IN_DATE else "" }}</td>
+                        <td>{{ record.PRR_RELEASE_DT.strftime('%Y-%m-%d (%a)').replace('Mon', '月').replace('Tue', '火').replace('Wed', '水').replace('Thu', '木').replace('Fri', '金').replace('Sat', '土').replace('Sun', '日') if record.PRR_RELEASE_DT else "" }}</td>
+                        <td>{{ record.PRR_LOT_NO }}</td>
+                        <td>{{ record.prd_mst.PRD_NM if record.prd_mst else "" }}</td>
+                        <td>{{ record.prd_mst.PRD_COLOR if record.prd_mst else "" }}</td>
+                        <td>{{ record.PRR_ANNEAL_DT.strftime('%Y-%m-%d (%a)').replace('Mon', '月').replace('Tue', '火').replace('Wed', '水').replace('Thu', '木').replace('Fri', '金').replace('Sat', '土').replace('Sun', '日') if record.PRR_ANNEAL_DT else "" }}</td>
+                        <td>{{ record.PRR_CHK1_DT.strftime('%Y-%m-%d (%a)').replace('Mon', '月').replace('Tue', '火').replace('Wed', '水').replace('Thu', '木').replace('Fri', '金').replace('Sat', '土').replace('Sun', '日') if record.PRR_CHK1_DT else "" }}</td>
+                        <td>{{ record.PRR_CHK2_DT.strftime('%Y-%m-%d (%a)').replace('Mon', '月').replace('Tue', '火').replace('Wed', '水').replace('Thu', '木').replace('Fri', '金').replace('Sat', '土').replace('Sun', '日') if record.PRR_CHK2_DT else "" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% elif search_performed %}
+    <div class="alert alert-info mt-4">
+        該当する未検査品はありません。
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // ページ読み込み時にCSVインポート時刻を表示
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if csv_import_time %}
+        document.getElementById('csv-import-time').textContent = "実績CSVインポート時刻：" + "{{ csv_import_time }}";
+        {% endif %}
+    });
+</script>
+{% endblock %} 

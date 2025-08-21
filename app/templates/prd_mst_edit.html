@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>製品マスタ{{ '新規作成' if is_create else '編集' }}</h2>
+    
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" class="needs-validation" novalidate>
+                        {{ form.csrf_token }}
+                        
+                        <div class="row g-3">
+                            <!-- 製品ID -->
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    {{ form.PRD_ID.label(class="form-label") }}
+                                    {{ form.PRD_ID(class="form-control") }}
+                                    {% if form.PRD_ID.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.PRD_ID.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    {% if not is_create %}
+                                        <small class="form-text text-muted">※編集時は変更できません</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- 商品分類 -->
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    {{ form.PRD_KBN.label(class="form-label") }}
+                                    {{ form.PRD_KBN(class="form-control", type="number", step="1", min="0") }}
+                                    {% if form.PRD_KBN.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.PRD_KBN.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- 識別ID -->
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    {{ form.PRD_TYP.label(class="form-label") }}
+                                    {{ form.PRD_TYP(class="form-control") }}
+                                    {% if form.PRD_TYP.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.PRD_TYP.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- 重合日数 -->
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    {{ form.PRD_PLY_DAYS.label(class="form-label") }}
+                                    {{ form.PRD_PLY_DAYS(class="form-control", type="number", step="1", min="0") }}
+                                    {% if form.PRD_PLY_DAYS.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.PRD_PLY_DAYS.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- 製品名 -->
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    {{ form.PRD_NM.label(class="form-label") }}
+                                    {{ form.PRD_NM(class="form-control") }}
+                                    {% if form.PRD_NM.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.PRD_NM.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- 膜カラー -->
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    {{ form.PRD_COLOR.label(class="form-label") }}
+                                    {{ form.PRD_COLOR(class="form-control") }}
+                                    {% if form.PRD_COLOR.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.PRD_COLOR.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            {{ form.submit(class="btn btn-primary") }}
+                            <a href="{{ url_for('master.prd_mst_list') }}" class="btn btn-secondary">キャンセル</a>
+                            {% if not is_create %}
+                            <button type="button" class="btn btn-danger" onclick="confirmDelete()">削除</button>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmDelete() {
+    if (confirm('この製品マスタを削除してもよろしいですか？\n削除後は元に戻すことができません。')) {
+        // 削除用のフォームを作成して送信
+        const deleteForm = document.createElement('form');
+        deleteForm.method = 'POST';
+        deleteForm.action = window.location.href;
+        
+        // CSRFトークンを追加
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrf_token';
+        csrfInput.value = csrfToken;
+        deleteForm.appendChild(csrfInput);
+        
+        // 削除アクションを示す隠しフィールドを追加
+        const deleteAction = document.createElement('input');
+        deleteAction.type = 'hidden';
+        deleteAction.name = 'action';
+        deleteAction.value = 'delete';
+        deleteForm.appendChild(deleteAction);
+        
+        document.body.appendChild(deleteForm);
+        deleteForm.submit();
+    }
+}
+</script>
+{% endblock %} 

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">実績CSV取込</h2>
+
+    <div class="row">
+        <!-- アップロードフォーム -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="csv_file" class="form-label">CSVファイルを選択</label>
+                            <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv">
+                        </div>
+                        <button type="submit" class="btn btn-primary">アップロード</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- マニュアル -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">実績CSV取込方法</h5>
+                </div>
+                <div class="card-body">
+                    <ol class="list-group list-group-numbered">
+                        <li class="list-group-item">
+                            <strong>SpeedyNeo（生産管理画面）</strong><br>
+                            →「工程」ボタン<br>
+                            →「実績一覧」ボタン
+                        </li>
+                        <li class="list-group-item">
+                            <strong>R1注入日</strong>を「過去2週間程度」で範囲指定
+                        </li>
+                        <li class="list-group-item">
+                            「抽出」ボタンを押す
+                        </li>
+                        <li class="list-group-item">
+                            全件表示されたら「CSV」ボタンを押す
+                        </li>
+                        <li class="list-group-item">
+                            <strong>実績管理画面</strong><br>
+                            → メニューの「CSV取込」押下<br>
+                            → ドロップダウンの「実績CSV取込」を選択
+                        </li>
+                        <li class="list-group-item">
+                            先ほど出力したCSVファイルを選択
+                        </li>
+                        <li class="list-group-item">
+                            「アップロード」ボタンを押す
+                        </li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- フラッシュメッセージ -->
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-info mt-3" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</div>
+{% endblock %} 

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">膜加工データCSV取込</h2>
+
+    <div class="row">
+        <!-- アップロードフォーム -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="csv_file" class="form-label">CSVファイルを選択</label>
+                            <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv">
+                        </div>
+                        <button type="submit" class="btn btn-primary">アップロード</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %} 

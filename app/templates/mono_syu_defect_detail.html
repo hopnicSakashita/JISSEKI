@@ -1,0 +1,526 @@
+{% extends 'base.html' %}
+
+{% block style %}
+<style>
+    .chart-container {
+        position: relative;
+        height: 600px;
+        width: 100%;
+        margin-bottom: 30px;
+    }
+    
+    .table-container {
+        margin-top: 30px;
+        position: relative;
+    }
+    
+    .table-responsive {
+        max-height: 600px;
+        overflow-y: auto;
+        position: relative;
+    }
+    
+    .defect-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .defect-table th, .defect-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: right;
+    }
+    
+    .defect-table thead th {
+        background-color: #f2f2f2;
+        text-align: center;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .defect-table thead th::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        border-bottom: 1px solid #ddd;
+    }
+    
+    .defect-table tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+    
+    .filters {
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    
+    .over-target {
+        color: red;
+        font-weight: bold;
+    }
+    
+    .total-row {
+        background-color: #e9ecef;
+        font-weight: bold;
+    }
+    
+    .target-info {
+        font-size: 0.9em;
+        color: #666;
+    }
+    
+    .defect-summary {
+        margin-top: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    
+    .defect-summary h3 {
+        margin-bottom: 15px;
+    }
+    
+    .defect-summary table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .defect-summary th, .defect-summary td {
+        padding: 8px;
+        text-align: right;
+        border: 1px solid #ddd;
+    }
+    
+    .defect-summary th {
+        background-color: #f2f2f2;
+        text-align: center;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        /* ヘッダーの境界線が消えるのを防ぐ */
+        &:after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            border-bottom: 1px solid #ddd;
+        }
+    }
+
+    /* テーブルヘッダーの影を追加 */
+    .defect-summary table thead th {
+        box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+    }
+    
+    .defect-summary .total-row {
+        background-color: #e9ecef;
+        font-weight: bold;
+    }
+    
+    .defect-summary .over-target {
+        color: red;
+        font-weight: bold;
+    }
+    
+    .mono-syu-selector {
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>モノマー種別不良詳細分析</h1>
+
+<div class="filters">
+    <h3>フィルター</h3>
+    <div class="row">
+        <div class="col-md-6">
+            <label for="date-from">R2注入日開始:</label>
+            <input type="date" id="date-from" class="form-control">
+            <label>R2注入日CSVを取り込まないと正しく検索できない可能性があります。</label>
+            <button id="today-button" class="btn btn-info m-1">今日</button>
+            <button id="yesterday-button" class="btn btn-info m-1">昨日</button>
+            <button id="this-month-button" class="btn btn-info m-1">今月</button>
+            <button id="last-month-button" class="btn btn-info m-1">前月</button>
+        </div>
+        <div class="col-md-6">
+            <label for="date-to">R2注入日終了:</label>
+            <input type="date" id="date-to" class="form-control">
+        </div>
+        <div class="col-md-6">
+            <label for="prd_id">製品ID:</label>
+            <input type="text" id="prd_id" class="form-control">
+        </div>
+    </div>
+    <div class="row mt-3">
+        <div class="col-md-12">
+            <button id="apply-filters" class="btn btn-primary">適用</button>
+            <button id="reset-filters" class="btn btn-secondary">リセット</button>
+        </div>
+    </div>
+</div>
+
+<div class="mono-syu-selector">
+    <label for="mono-syu">モノマー種:</label>
+    <select id="mono-syu" class="form-control">
+        <option value="">全て</option>
+        {% for code, info in mono_mst.items() %}
+        <option value="{{ code }}">{{ info.name }}</option>
+        {% endfor %}
+    </select>
+</div>
+
+
+<div class="chart-container">
+    <canvas id="defect-chart" style="height:600px;"></canvas>
+</div>
+
+<div class="defect-summary">
+    <h3>不良詳細データ</h3>
+    <div class="table-responsive">
+        <table class="table table-bordered" id="defect-summary-table">
+            <thead class="thead-dark">
+                <tr>
+                    <th>不良項目</th>
+                    <!-- 日付はJavaScriptで動的に追加 -->
+                </tr>
+            </thead>
+            <tbody>
+                <!-- データはJavaScriptで動的に生成 -->
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0 "></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // チャートの初期化
+        let defectChart = null;
+        
+        // 日付ボタンのイベントリスナー設定
+        setupDateButtons();
+        
+        // フィルター適用
+        document.getElementById('apply-filters').addEventListener('click', function() {
+            fetchDefectData();
+        });
+        
+        // フィルターリセット
+        document.getElementById('reset-filters').addEventListener('click', function() {
+            document.getElementById('date-from').value = '';
+            document.getElementById('date-to').value = '';
+            document.getElementById('prd_id').value = '';
+            document.getElementById('mono-syu').value = '';
+            fetchDefectData();
+        });
+        
+        // モノマー種選択時のイベント
+        document.getElementById('mono-syu').addEventListener('change', function() {
+            fetchDefectData();
+        });
+        
+        function setupDateButtons() {
+            // 今日ボタン
+            document.getElementById('today-button').addEventListener('click', function() {
+                const today = new Date();
+                document.getElementById('date-from').value = formatDateForInput(today);
+                document.getElementById('date-to').value = formatDateForInput(today);
+            });
+            
+            // 昨日ボタン
+            document.getElementById('yesterday-button').addEventListener('click', function() {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                document.getElementById('date-from').value = formatDateForInput(yesterday);
+                document.getElementById('date-to').value = formatDateForInput(yesterday);
+            });
+            
+            document.getElementById('this-month-button').addEventListener('click', function(e) {
+                e.preventDefault();
+                const now = new Date();
+                const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+                const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                document.getElementById('date-from').value = formatDateForInput(firstDay);
+                document.getElementById('date-to').value = formatDateForInput(lastDay);
+            });
+        
+            document.getElementById('last-month-button').addEventListener('click', function(e) {
+                e.preventDefault();
+                const now = new Date();
+                const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1);
+                const firstDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 1);
+                const lastDay = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + 1, 0);
+                document.getElementById('date-from').value = formatDateForInput(firstDay);
+                document.getElementById('date-to').value = formatDateForInput(lastDay);
+            });
+        }
+        
+        function updateDefectSummary(data) {
+            const tableBody = document.getElementById('defect-summary-table').getElementsByTagName('tbody')[0];
+            tableBody.innerHTML = '';
+            
+            // テーブルヘッダー更新
+            const tableHeader = document.getElementById('defect-summary-table').getElementsByTagName('thead')[0].getElementsByTagName('tr')[0];
+            while (tableHeader.childElementCount > 2) {
+                tableHeader.removeChild(tableHeader.lastChild);
+            }
+            
+            // 日付をヘッダーに追加
+            data.dates.forEach(date => {
+                const th = document.createElement('th');
+                const dateObj = new Date(date);
+                const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+                const day = dateObj.getDate().toString().padStart(2, '0');
+                th.textContent = `${month}/${day}`;
+                tableHeader.appendChild(th);
+            });
+            
+            // 不良項目ごとのデータを行として追加
+            Object.entries(data.defect_labels).forEach(([defect_type, label]) => {
+                // 全ての日付でデータがないかチェック
+                let hasData = false;
+                data.dates.forEach(date => {
+                    if (data.defect_rates[date] && 
+                        data.defect_rates[date][defect_type] !== undefined && 
+                        data.defect_rates[date][defect_type] > 0) {
+                        hasData = true;
+                    }
+                });
+                
+                // データがない場合はスキップ
+                if (!hasData) return;
+                
+                const row = document.createElement('tr');
+                
+                // 不良項目列
+                const typeCell = document.createElement('td');
+                typeCell.textContent = label;
+                row.appendChild(typeCell);
+                
+                // 日付ごとの不良率
+                data.dates.forEach(date => {
+                    const cell = document.createElement('td');
+                    if (data.defect_rates[date] && data.defect_rates[date][defect_type] !== undefined) {
+                        const rate = data.defect_rates[date][defect_type];
+                        // 不良率の表示を改善（非常に小さい値の場合は0.00%と表示）
+                        cell.textContent = rate < 0.01 ? '0.00' : rate.toFixed(2);
+                        cell.textContent += '%';
+                    } else {
+                        cell.textContent = '-';
+                    }
+                    row.appendChild(cell);
+                });
+                
+                tableBody.appendChild(row);
+            });
+            
+            // 合計行の追加
+            const totalRow = document.createElement('tr');
+            totalRow.classList.add('total-row');
+            
+            // 合計ラベル
+            const totalLabelCell = document.createElement('td');
+            totalLabelCell.textContent = '合計';
+            totalRow.appendChild(totalLabelCell);
+            
+            // 日付ごとの合計不良率
+            data.dates.forEach(date => {
+                const cell = document.createElement('td');
+                if (data.total_rates[date] !== undefined) {
+                    const rate = data.total_rates[date];
+                    // 合計不良率の表示も改善
+                    cell.textContent = rate < 0.01 ? '0.00' : rate.toFixed(2);
+                    cell.textContent += '%';
+                } else {
+                    cell.textContent = '-';
+                }
+                totalRow.appendChild(cell);
+            });
+            
+            tableBody.appendChild(totalRow);
+        }
+        
+        function updateChart(data) {
+            const ctx = document.getElementById('defect-chart').getContext('2d');
+            
+            // 既存のチャートを破棄
+            if (defectChart) {
+                defectChart.destroy();
+            }
+            
+            // 有効な不良項目を抽出（データが存在する項目のみ）
+            const validDefectTypes = [];
+            const mainDefectTypes = [
+                'total_inject', 'roll_miss', 'r1_bubble_chk', 'curl_ins', 'film_flt_ck',
+                'leak', 'film_pull', 'film_ng_ck', 'r2_bub_rek', 'crack',
+                'tear_rls', 'tear', 'peel', 'chip', 'poly_crk',
+                'mold_scr', 'lens_scr', 'r1_bubble', 'r2_bubble', 'defect',
+                'elution', 'haze', 'curl', 'film_float', 'r1_defect',
+                'film_ng', 'foreign', 'cut_waste', 'fiber', 'mold_dirt',
+                'film_dirt', 'axis_1st', 'stripe_1st', 'edge_defect', 'ecc_1st',
+                'wash_drop', 'unknown', 'other_1', 'other_2', 'ecc_defect',
+                'drop', 'count_err', 'other_1st', 'peel_2nd', 'stripe_2nd',
+                'suction', 'mold_2nd', 'film_2nd', 'defect_2nd', 'other_2nd',
+                'axis_def', 'film_3rd', 'color_def', 'trans_def', 'curve_def',
+                'cen_th_def', 'diam_def', 'r1_th_def', 'ecc_3rd', 'edge_def_3',
+                'axis_3rd', 'other_3rd'
+            ];
+            
+            mainDefectTypes.forEach(defect_type => {
+                let hasData = false;
+                data.dates.forEach(date => {
+                    if (data.defect_rates[date] && 
+                        data.defect_rates[date][defect_type] !== undefined && 
+                        data.defect_rates[date][defect_type] > 0) {
+                        hasData = true;
+                    }
+                });
+                if (hasData) {
+                    validDefectTypes.push(defect_type);
+                }
+            });
+            
+            // データセットの作成
+            const datasets = [];
+            
+            // 不良項目のデータセットを追加
+            validDefectTypes.forEach((defect_type, index) => {
+                datasets.push({
+                    label: data.defect_labels[defect_type],
+                    data: data.dates.map(date => {
+                        if (data.defect_rates[date] && data.defect_rates[date][defect_type] !== undefined) {
+                            return data.defect_rates[date][defect_type];
+                        }
+                        return 0;
+                    }),
+                    backgroundColor: root[defect_type],
+                });
+            });
+            
+            // 新しいチャートを作成
+            defectChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.dates.map(date => {
+                        const d = new Date(date);
+                        const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+                        return `${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')}(${weekdays[d.getDay()]})`
+                    }),
+                    datasets: datasets
+                },
+                plugins: [ChartDataLabels],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '不良項目の推移',
+                            font: {
+                                size: 18
+                            }
+                        },
+                        legend: {
+                            position: 'right',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        const rate = context.parsed.y;
+                                        label += (rate < 0.01 ? '0.00' : rate.toFixed(2)) + '%';
+                                    }
+                                    return label;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'start',
+                            font: {
+                                size: 10, 
+                                weight: 'bold',
+                                family: 'Meiryo',
+                                color: '#ffffff'
+                            },
+                            formatter: function(value, context) {
+                                return (value < 5 ? '' : (value.toFixed(2) + '%' + '\n' + context.dataset.label));
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            title: {
+                                display: true,
+                                text: 'R2注入日'
+                            },
+                            ticks: {
+                                font: {
+                                    size: 16
+                                }
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            stacked: true,
+                            title: {
+                                display: true,
+                                text: '不良率 (%)'
+                            },
+                            ticks: {
+                                font: {
+                                    size: 16
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function fetchDefectData() {
+            // フィルターの値を取得
+            const dateFrom = document.getElementById('date-from').value;
+            const dateTo = document.getElementById('date-to').value;
+            const prd_id = document.getElementById('prd_id').value;
+            const mono_syu = document.getElementById('mono-syu').value;
+
+            // APIリクエストURL作成
+            let url = '/api/mono_syu_defect_detail_data?';
+            if (dateFrom) url += `date_from=${encodeURIComponent(dateFrom)}&`;
+            if (dateTo) url += `date_to=${encodeURIComponent(dateTo)}&`;
+            if (prd_id) url += `prd_id=${encodeURIComponent(prd_id)}&`;
+            if (mono_syu) url += `mono_syu=${encodeURIComponent(mono_syu)}`;
+            
+            // APIリクエスト
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    updateChart(data);
+                    updateDefectSummary(data);
+                    document.getElementById('csv-import-time').textContent = '実績CSVインポート時間: ' + data.csv_import_time;
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                });
+        }
+    });
+</script>
+{% endblock %} 
