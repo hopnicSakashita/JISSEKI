@@ -65,6 +65,59 @@
         background-color: #f2f2f2;
         text-align: center;
     }
+    .scoreboard {
+        margin: 20px 0;
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 10px;
+        color: white;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .scoreboard h3 {
+        text-align: center;
+        margin-bottom: 20px;
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+    .scoreboard-table {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .scoreboard-table th, .scoreboard-table td {
+        padding: 15px;
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .scoreboard-table th {
+        background-color: rgba(255, 255, 255, 0.2);
+        font-weight: bold;
+        font-size: 1.1rem;
+    }
+    .scoreboard-table td {
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+    .target-value {
+        color: #ffd700;
+        font-size: 1.4rem;
+    }
+    .good-rate-value {
+        color: #90EE90;
+        font-size: 1.4rem;
+    }
+    .diff-value {
+        color: #FFB6C1;
+        font-size: 1.4rem;
+    }
+    .diff-positive {
+        color: #90EE90;
+    }
+    .diff-negative {
+        color: #FFB6C1;
+    }
 </style>
 {% endblock %}
 
@@ -116,6 +169,28 @@
             <button id="apply-filters" class="btn btn-primary">適用</button>
             <button id="reset-filters" class="btn btn-secondary">リセット</button>
         </div>
+    </div>
+</div>
+
+<div class="scoreboard">
+    <h3>収率スコア</h3>
+    <div class="table-responsive">
+        <table class="scoreboard-table">
+            <thead>
+                <tr>
+                    <th>目標</th>
+                    <th>良品率</th>
+                    <th>差分</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="target-value">75</span>%</td>
+                    <td><span class="good-rate-value" id="good-rate-value">-</span>%</td>
+                    <td><span class="diff-value" id="diff-value">-</span>%</td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 </div>
 
@@ -467,12 +542,53 @@
                     rateCell.textContent = (rate < 0.01 ? '0.00' : rate.toFixed(2)) + '%';
                     row.appendChild(rateCell);
 
-                    tableBody.appendChild(row);
-                }
-            });
+                                tableBody.appendChild(row);
         }
+    });
+}
+
+function updateScoreboard(data) {
+    let totalSheets = 0;
+    let totalGradeA = 0;
+    let totalGradeB = 0;
+    let totalGradeC = 0;
+    
+    // 期間合計の計算
+    data.dates.forEach(date => {
+        if (data.total_data[date]) {
+            totalSheets += data.total_data[date].total_sheets;
+            totalGradeA += data.total_data[date].total_grade_a;
+            totalGradeB += data.total_data[date].total_grade_b;
+            totalGradeC += data.total_data[date].total_grade_c;
+        }
+    });
+    
+    // 収率の計算（FMP_GRADE_A + FMP_GRADE_B + FMP_GRADE_C）/ FMP_PROC_SHTS
+    const totalGood = totalGradeA + totalGradeB + totalGradeC;
+    const goodRate = totalSheets > 0 ? (totalGood / totalSheets * 100) : 0;
+    const targetRate = 75; // 目標収率75%
+    const diff = goodRate - targetRate;
+    
+    // スコアボードの更新
+    const goodRateElement = document.getElementById('good-rate-value');
+    const diffElement = document.getElementById('diff-value');
+    
+    if (goodRateElement) {
+        goodRateElement.textContent = goodRate.toFixed(2);
+    }
+    
+    if (diffElement) {
+        diffElement.textContent = diff.toFixed(2);
+        // 差分の色を設定
+        if (diff >= 0) {
+            diffElement.className = 'diff-value diff-positive';
+        } else {
+            diffElement.className = 'diff-value diff-negative';
+        }
+    }
+}
         
-        function updatePrimaryChart(data) {
+function updatePrimaryChart(data) {
             const ctx = document.getElementById('primary-defect-chart').getContext('2d');
             if (primaryDefectChart) {
                 primaryDefectChart.destroy();
@@ -800,6 +916,7 @@
                     updateSecondaryDefectSummary(data);
                     updatePeriodSummary(data);
                     updatePeriodTotalChart(data);
+                    updateScoreboard(data);
                 })
                 .catch(error => {
                     console.error('Error fetching data:', error);

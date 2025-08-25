@@ -268,7 +268,10 @@ def api_fmp_defect_detail_data():
             func.DATE(FmpDat.FMP_INSP_DATE).label('date'),
             *[func.sum(getattr(FmpDat, k)).label(k) for k in primary_keys + secondary_keys],
             func.sum(FmpDat.FMP_PROC_SHTS).label('total_sheets'),
-            func.sum(FmpDat.FMP_PRM_GOOD_QTY).label('total_primary_good')
+            func.sum(FmpDat.FMP_PRM_GOOD_QTY).label('total_primary_good'),
+            func.sum(FmpDat.FMP_GRADE_A).label('total_grade_a'),
+            func.sum(FmpDat.FMP_GRADE_B).label('total_grade_b'),
+            func.sum(FmpDat.FMP_GRADE_C).label('total_grade_c')
         )
         
         if start_date:
@@ -320,9 +323,17 @@ def api_fmp_defect_detail_data():
                 secondary_defect_sum += value
                 secondary_defect_rates[date_str][defect] = round((value / total_primary_good * 100) if total_primary_good else 0, 2)
             
+            # 収率計算用データ
+            total_grade_a = float(row.total_grade_a or 0)
+            total_grade_b = float(row.total_grade_b or 0)
+            total_grade_c = float(row.total_grade_c or 0)
+            
             total_data[date_str] = {
                 'total_sheets': total_sheets,
-                'total_primary_good': total_primary_good
+                'total_primary_good': total_primary_good,
+                'total_grade_a': total_grade_a,
+                'total_grade_b': total_grade_b,
+                'total_grade_c': total_grade_c
             }
             
             # 合計不良率の計算

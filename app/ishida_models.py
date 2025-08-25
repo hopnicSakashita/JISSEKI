@@ -771,10 +771,17 @@ class FmpDat(db.Model):
                 }
             }
             
+            # 収率の計算（FMP_GRADE_A + FMP_GRADE_B + FMP_GRADE_C）/ FMP_PROC_SHTS
+            total_grade_a = sum(r.FMP_GRADE_A or 0 for r in results)
+            total_grade_b = sum(r.FMP_GRADE_B or 0 for r in results)
+            total_grade_c = sum(r.FMP_GRADE_C or 0 for r in results)
+            total_good = total_grade_a + total_grade_b + total_grade_c
+            good_rate = total_good / total_sheets * 100 if total_sheets > 0 else 0
+            
             return {
                 'total_sheets': total_sheets,
                 'primary_good': primary_good,
-                'primary_good_rate': primary_good / total_sheets * 100,
+                'primary_good_rate': good_rate,  # 正しい収率計算
                 'primary_defect_rates': primary_defect_rates,
                 'secondary_defect_rates': secondary_defect_rates,
                 'grade_info': grade_info
