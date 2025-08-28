@@ -9,6 +9,41 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <title>実績管理</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* トップに戻るボタンのスタイル */
+        .scroll-to-top {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: none;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .scroll-to-top:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        
+        .scroll-to-top.show {
+            display: block;
+        }
+        
+        .scroll-to-top::before {
+            content: "↑";
+            font-size: 20px;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -138,6 +173,9 @@
         {% block content %}{% endblock %}
     </main>
     
+    <!-- トップに戻るボタン -->
+    <button class="scroll-to-top" id="scrollToTop" title="トップに戻る"></button>
+    
     <footer>
         <div id="csv-import-time" style="text-align: right;"></div>
     </footer>
@@ -154,6 +192,28 @@
             const day = String(date.getDate()).padStart(2, '0');
             return `${year}-${month}-${day}`;
         }
+        
+        /* トップに戻るボタンの機能 */
+        document.addEventListener('DOMContentLoaded', function() {
+            const scrollToTopBtn = document.getElementById('scrollToTop');
+            
+            // スクロールイベントの監視
+            window.addEventListener('scroll', function() {
+                if (window.pageYOffset > 300) {
+                    scrollToTopBtn.classList.add('show');
+                } else {
+                    scrollToTopBtn.classList.remove('show');
+                }
+            });
+            
+            // ボタンクリック時の処理
+            scrollToTopBtn.addEventListener('click', function() {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            });
+        });
         
         /* 共通の色設定 */
         const root = {
